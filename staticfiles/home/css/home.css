@@ -1,0 +1,56 @@
+/* Call to Action (CTA) */
+.cta {
+    padding: 50px 20px;
+    background-color: #e6f7ff;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.cta h2 {
+    font-size: 2em;
+    margin-bottom: 20px;
+    color: #333333;
+}
+
+.cta p {
+    font-size: 1.1em;
+    color: #555555;
+    margin-bottom: 30px;
+}
+
+.cta .submit-btn {
+    padding: 12px 25px;
+    background-color: #28a745;
+    color: #ffffff;
+    border-radius: 5px;
+    font-size: 1em;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.cta .submit-btn:hover {
+    background-color: #1e7e34;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .features {
+        flex-direction: column;
+    }
+    .hero h1, .cta h2 {
+        font-size: 1.8em;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero, .cta {
+        padding: 30px 15px;
+    }
+    .features {
+        gap: 15px;
+    }
+    .feature, .cta h2 {
+        font-size: 1.5em;
+    }
+}
+

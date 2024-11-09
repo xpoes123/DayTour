@@ -1,0 +1,71 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Existing head content -->
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sonder{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/daytour.png' %}">
+
+    <!-- Main CSS -->
+    <link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
+    
+    {% block extra_head %}
+    <!-- Where the template extra header goes -->
+    {% endblock %}
+</head>
+<body>
+    <!-- Header -->
+<header>
+    {% block header %}
+        <nav aria-label="Main Navigation">
+            <!-- Left Navigation Links -->
+            <ul class="nav-left">
+                <li>
+                    <a href="{% url 'home:home' %}" class="login_btn">Get Started</a>
+                </li>
+            </ul>
+            
+            <!-- Centered Title and Logo -->
+            <div class="nav-center">
+                <h1 class="site-title">DAY TOUR</h1>
+                <div class="logo">
+                    <a href="{% url 'home:home' %}" class="login_btn"><img src="{% static 'images/daytour.png' %}" alt="DayTour.png"></a>
+                </div>
+            </div>
+            
+            <ul class="nav-right">
+                <li>
+                    Login
+                </li>
+                <li>
+                    Register
+                </li>
+            </ul>
+        </nav>
+    {% endblock %}
+</header>
+
+    <main>
+        {% block content %}
+        <!-- Content from child templates will be injected here -->
+        {% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer>
+        {% block footer %}
+        <p>&copy; {% now "Y" %} Day Tour. All rights reserved.</p>
+        {% endblock %}
+    </footer>
+    
+    <!-- JavaScript -->
+    {% block extra_js %}
+    <!-- Additional JavaScript can be added by extending templates -->
+    {% endblock %}
+</body>
+</html>

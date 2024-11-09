@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_head %}
+    <link rel="stylesheet" type="text/css" href="{% static 'home/css/home.css' %}">
+{% endblock %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="container">
+    <section class="hero">
+        <h2>Plan Your Day</h2>
+        <div class="left-text"><p>Welcome to Day Tour, let us help you plan your day of fun with your preferences. Tell us where you're starting, where you want to go, and how long you want to explore!</p></div>
+    </section>
+
+    <section class="features">
+        <div class="feature">
+            <h2>Add Preferences</h2>
+            <div class="left-text">
+                <p>What kind of things do you like to do? Let us know and we will tailor your itinerary with what you like and want to do! This includes what kind of resturants you want to try out!</p>
+            </div>
+        </div>
+        <div class="feature">
+            <h2>Tell Us Your Plans</h2>
+            <div class="left-text">
+                <p>Do you have dinner reservations or a ticket for a concert? We can create an itinerary based around your established plans. Or if you really want to go somewhere, we can ensure that location is on your itinerary.</p>
+            </div>
+        </div>
+        <div class="feature">
+            <h2>Advanced Preferences</h2>
+            <div class="left-text">
+                <p>Not a fan of running around? Configure your own walk-times and explore-times based on how much time you went to spend at certain places. Or if you don't want to go somewhere, let us know, and we will configure the itinerary</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="cta">
+        <h2>Join the Day Tour Community</h2>
+        <div class="left-text">
+            <p>Let the community know how the places you went were. Rate them so we know whether or not to keep recommending them. Have a new place you want us to add that you don't see on this site? Submit a ticket!</p>
+        </div>
+    </section>
+</div>
+{% endblock %}
