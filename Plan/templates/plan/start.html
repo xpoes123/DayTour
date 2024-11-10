@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block extra_head %}
+    <link rel="stylesheet" type="text/css" href="{% static 'plan/css/start.css' %}">
+{% endblock %}
+{% block title %}Plan Your Day{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Welcome to Day Tour</h1>
+    <p>Fill out the form to get your itinerary</p>
+
+    <form method="POST" action="{% url 'plan:plan' %}" id="plan-form"> 
+        {% csrf_token %}
+
+        <!-- Starting Location Input -->
+        <div class="form-group">
+            {{ form.start_loc.label_tag }}
+            {{ form.start_loc }}
+        </div>
+
+        <!-- Starting Time Input -->
+        <div class="form-group">
+            {{ form.start_time.label_tag }}
+            {{ form.start_time }}
+        </div>
+
+        <!-- Ending Time Input -->
+        <div class="form-group">
+            {{ form.end_time.label_tag }}
+            {{ form.end_time }}
+        </div>
+
+        <!-- Budget Input -->
+        <div class="form-group">
+            {{ form.budget.label_tag }}
+            {{ form.budget }}
+        </div>
+
+        <!-- Required Stops Input -->
+        <div class="form-group">
+            {{ form.required_stops.label_tag }}
+            {{ form.required_stops }}
+        </div>
+
+        <!-- Submit Button -->
+        <div class="button-container">
+            <button class="submit-btn" type="submit">Submit</button>
+        </div>
+    </form>
+    
+    <!-- Messages Display -->
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const startLocField = document.querySelector('#plan-form input[name="start_loc"]');
+        const startTimeField = document.querySelector('#plan-form input[name="start_time"]');
+        const endTimeField = document.querySelector('#plan-form input[name="end_time"]');
+        const budgetField = document.querySelector('#plan-form input[name="budget"]');
+        
+        // Optional: Additional JavaScript for input placeholders
+        startLocField.placeholder = "Enter your starting location";
+        startTimeField.placeholder = "Enter starting time";
+        endTimeField.placeholder = "Enter end time";
+        budgetField.placeholder = "Enter budget";
+    });
+</script>
+{% endblock %}
+{% endblock %}
