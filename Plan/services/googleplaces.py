@@ -1,9 +1,12 @@
 import requests
+from django.conf import settings
+
+API_KEY = settings.G_API_KEY
 
 def getPlaces(textQuery = 'Wisconsin State Capitol', radius = 4000):
     # Convert textQuery into lat/long using a "Text Search" request
     url1 = 'https://places.googleapis.com/v1/places:searchText'
-    headers1 = {'X-Goog-Api-Key': 'AIzaSyDg6UAuCN_289HRIZ1Y3QGLTrTp2T7qu9g',
+    headers1 = {'X-Goog-Api-Key': API_KEY,
                 'X-Goog-FieldMask': 'places.displayName,places.id,places.location'}
     r1 = requests.post(url1, headers=headers1, data={'textQuery': textQuery}).json()['places'][0]
     location = r1['location']
@@ -14,7 +17,7 @@ def getPlaces(textQuery = 'Wisconsin State Capitol', radius = 4000):
 
     # Find a maximum of 20 tourist-attractions near the lat/long, return array of placeIDs
     url = 'https://places.googleapis.com/v1/places:searchNearby'
-    headers = {'X-Goog-Api-Key': 'AIzaSyDg6UAuCN_289HRIZ1Y3QGLTrTp2T7qu9g',
+    headers = {'X-Goog-Api-Key': API_KEY,
             'X-Goog-FieldMask': 'places.id,places.displayName'}
     params = {
         'locationRestriction': {

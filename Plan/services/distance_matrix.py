@@ -1,13 +1,13 @@
 import requests
 import json
+from django.conf import settings
+
+API_KEY = settings.G_API_KEY
 #from googleplaces import getPlaces
 
 def printj(json_file):
     """Debugging tool"""
     print(json.dumps(json_file, indent=4))
-
-API_KEY = 'AIzaSyDg6UAuCN_289HRIZ1Y3QGLTrTp2T7qu9g'
-locations = ['ChIJgUbEo8cfqokR5lP9_Wh_DaM', 'GhIJQWDl0CIeQUARxks3icF8U8A']
 
 def get_distance_matrix(locations):
 
@@ -34,8 +34,3 @@ def get_distance_matrix(locations):
         i += 1
 
     return distance_matrix
-
-# def get_places():
-#     return get_distance_matrix(getPlaces()[:10])
-
-# print(len(getPlaces()))

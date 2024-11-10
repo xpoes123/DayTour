@@ -1,0 +1,32 @@
+# Ignore environment variables
+.env
+
+# Ignore Python cache and compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Ignore virtual environment folder
+.venv/
+venv/
+
+# Ignore Django-specific files
+*.log
+*.pot
+*.pyc
+*.sqlite3
+db.sqlite3
+
+# Ignore static and media files (if they are generated or uploaded content)
+/staticfiles/
+/media/
+
+# Ignore IDE and editor-specific files
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Ignore files related to Heroku deployments
+Procfile

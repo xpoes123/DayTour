@@ -31,8 +31,14 @@ def location_blogs(request, location_id):
 
 @login_required
 def create_post(request):
+    # Filter itineraries to only show those belonging to the logged-in user
+    user_itineraries = Itinerary.objects.filter(user=request.user)
+    
     if request.method == 'POST':
+        # Initialize the form with POST data and the logged-in user's itineraries
         form = PostForm(request.POST)
+        form.fields['itinerary'].queryset = user_itineraries  # Limit itineraries in the form to user's itineraries
+        
         if form.is_valid():
             itinerary = form.cleaned_data['itinerary']
             overall_review_text = form.cleaned_data['review']
@@ -85,7 +91,9 @@ def create_post(request):
             print("Form errors:", form.errors)
 
     else:
+        # Initialize the form with the filtered itineraries
         form = PostForm()
+        form.fields['itinerary'].queryset = user_itineraries  # Show only user's itineraries in the dropdown
 
     return render(request, 'blog/create_post.html', {'form': form})
 
