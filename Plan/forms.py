@@ -24,9 +24,16 @@ class PlanForm(forms.Form):
         required=False,
         widget=forms.NumberInput(attrs={'placeholder': 'Enter your budget in dollars'})
     )
-    required_stops = forms.CharField(
-        label='Required Stops',
-        max_length=300,
-        required=False,
-        widget=forms.Textarea(attrs={'placeholder': 'List required stops, separated by commas', 'rows': 3})
-    )
+
+    # Placeholder fields for required stops
+    stop_1_location = forms.CharField(label="Location", max_length=100, required=False)
+    stop_1_start_time = forms.TimeField(label="Start Time", required=False, widget=forms.TimeInput(attrs={'type': 'time'}))
+    stop_1_duration = forms.DurationField(label="Duration (min)", required=False)
+
+    stop_2_location = forms.CharField(label="Location", max_length=100, required=False)
+    stop_2_start_time = forms.TimeField(label="Start Time", required=False, widget=forms.TimeInput(attrs={'type': 'time'}))
+    stop_2_duration = forms.DurationField(label="Duration (min)", required=False)
+
+    stop_3_location = forms.CharField(label="Location", max_length=100, required=False)
+    stop_3_start_time = forms.TimeField(label="Start Time", required=False, widget=forms.TimeInput(attrs={'type': 'time'}))
+    stop_3_duration = forms.DurationField(label="Duration (min)", required=False)

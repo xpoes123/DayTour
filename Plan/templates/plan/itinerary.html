@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+    <link rel="stylesheet" type="text/css" href="{% static 'plan/css/itinerary.css' %}">
+{% endblock %}
+
+{% block title %}Plan Your Day{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Messages Display -->
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <div class="itinerary-container">
+        <!-- Left side: Map -->
+        <div class="map-section">
+            <img src="{% static 'plan/images/temp.png' %}" alt="Map" class="map-image">
+        </div>
+        
+        <!-- Right side: Itinerary Details -->
+        <div class="itinerary-section">
+            <h2>Itinerary</h2>
+            <ul class="itinerary-list">
+                {% for step in travel_plan %}
+                    <li class="itinerary-item" onclick="toggleDetails(this)">
+                        <div class="basic-info">
+                            <span class="location">From: {{ step.0 }}</span> &rarr; 
+                            <span class="location">To: {{ step.1 }}</span>
+                        </div>
+                        <div class="itinerary-details" style="display: none;">
+                            <div class="itinerary-detail">
+                                <span class="label">Commute Time:</span>
+                                <span class="value">{{ step.2 }}</span>
+                            </div>
+                            <div class="itinerary-detail">
+                                <span class="label">Start Commute:</span>
+                                <span class="value">{{ step.3 }}</span>
+                            </div>
+                            <div class="itinerary-detail">
+                                <span class="label">Duration:</span>
+                                <span class="value">{{ step.4 }}</span>
+                            </div>
+                            <!-- Edit Button and Options (Initially Hidden) -->
+                            <button type="button" class="edit-btn" onclick="event.stopPropagation(); toggleEditOptions(this)">Edit</button>
+                            <div class="edit-options" style="display: none;">
+                                <button type="button" class="option-btn" onclick="deleteLocation(this)">Delete Location</button>
+                                <button type="button" class="option-btn" onclick="changeDuration(this)">Change Duration</button>
+                            </div>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+            <!-- Save Button -->
+            <div class="save-container">
+                <a href="{% url 'plan:itinerary' %}" class="save-btn">Looks Good!</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toggle details display and show the Edit button when details are visible
+    function toggleDetails(item) {
+        const details = item.querySelector('.itinerary-details');
+        const isVisible = details.style.display === 'block';
+        
+        // Toggle display of details and edit options based on current visibility
+        details.style.display = isVisible ? 'none' : 'block';
+        
+        // Hide edit options if details are hidden
+        if (isVisible) {
+            const editOptions = item.querySelector('.edit-options');
+            editOptions.style.display = 'none';
+        }
+    }
+
+    // Toggle edit options display
+    function toggleEditOptions(button) {
+        const editOptions = button.closest('.itinerary-item').querySelector('.edit-options');
+        editOptions.style.display = editOptions.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Placeholder functions for edit options
+    function deleteLocation(button) {
+        alert("Location deleted."); // Placeholder for deletion action
+        button.closest('.itinerary-item').remove();
+    }
+
+    function changeDuration(button) {
+        const newDuration = prompt("Enter new duration:");
+        if (newDuration) {
+            button.closest('.itinerary-item').querySelector('.value:last-child').innerText = newDuration;
+        }
+    }
+</script>
+{% endblock %}

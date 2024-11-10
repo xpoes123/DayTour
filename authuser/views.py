@@ -16,7 +16,7 @@ def register(request):
         if form.is_valid():
             user = form.save()
             messages.success(request, f"Account was created for {user.username}")
-            return redirect('music:login')
+            return redirect('authuser:login')
     context = {'form': form}
     return render(request, 'authuser/register.html', context)
 
@@ -40,3 +40,7 @@ def login_page(request):
 def logout_user(request):
     logout(request)
     return redirect('authuser:login')
+
+def profile(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    return render(request, 'authuser/profile.html', {'profile_user': user})

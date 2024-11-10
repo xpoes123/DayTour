@@ -58,6 +58,9 @@
             {% endif %}
         </form>
     </div>
+    <div class="redirect">
+        <p>Don't have an account? <a href="{% url 'authuser:register' %}">Register</a></p>
+    </div>
 </div>
 
 {% block extra_js %}

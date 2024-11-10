@@ -25,3 +25,16 @@ def plan(request):
         else:
             messages.error(request, "Invalid form submission.")
     return render(request, 'plan/start.html', {'form': form})
+
+def itinerary(request):
+    # Sample data for travel_plan
+    travel_plan = [
+        ["Location A", "Location B", "15 mins", "8:00 AM", "1 hour"],
+        ["Location B", "Location C", "10 mins", "9:15 AM", "30 mins"],
+        ["Location C", "Location D", "20 mins", "10:00 AM", "1.5 hours"],
+    ]
+    
+    context = {
+        "travel_plan": travel_plan,
+    }
+    return render(request, 'plan/itinerary.html', context)

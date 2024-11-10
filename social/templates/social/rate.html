@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Rate Locations{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Rate a Location</h1>
+    <form method="post" action="{% url 'social:rate_location' %}" id="rate-form">
+        {% csrf_token %}
+        {{ form.location.label_tag }}
+        {{ form.location }}
+        
+        <!-- Star Rating Interface -->
+        <div class="star-rating">
+            {% for i in "12345" %}
+                <span class="star" data-value="{{ forloop.counter }}">&#9733;</span>
+            {% endfor %}
+        </div>
+        {{ form.rating }}
+
+        <button type="submit" class="submit-btn">Submit Rating</button>
+    </form>
+</div>
+
+<script>
+    // JavaScript for star rating interaction
+    const stars = document.querySelectorAll('.star');
+    const ratingInput = document.getElementById('id_rating');
+
+    stars.forEach(star => {
+        star.addEventListener('click', () => {
+            const rating = star.getAttribute('data-value');
+            ratingInput.value = rating;
+
+            stars.forEach(s => s.classList.remove('selected'));
+            star.classList.add('selected');
+            for (let i = 0; i < rating; i++) {
+                stars[i].classList.add('selected');
+            }
+        });
+    });
+</script>
+
+<style>
+    .star-rating {
+        display: inline-flex;
+        cursor: pointer;
+    }
+
+    .star {
+        font-size: 2em;
+        color: #ccc;
+    }
+
+    .star.selected {
+        color: #f5b301; /* Gold color for selected stars */
+    }
+</style>
+{% endblock %}

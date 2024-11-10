@@ -12,38 +12,89 @@
 
     <form method="POST" action="{% url 'plan:plan' %}" id="plan-form"> 
         {% csrf_token %}
+        
+        <!-- Main Form Fields (Full Width) -->
+        <div class="main-form-fields">
+            <div class="form-group">
+                {{ form.start_loc.label_tag }}
+                {{ form.start_loc }}
+            </div>
 
-        <!-- Starting Location Input -->
-        <div class="form-group">
-            {{ form.start_loc.label_tag }}
-            {{ form.start_loc }}
+            <div class="form-group">
+                {{ form.start_time.label_tag }}
+                {{ form.start_time }}
+            </div>
+
+            <div class="form-group">
+                {{ form.end_time.label_tag }}
+                {{ form.end_time }}
+            </div>
+
+            <div class="form-group">
+                {{ form.budget.label_tag }}
+                {{ form.budget }}
+            </div>
+        </div>
+        
+        <div id="required-stops-section" class="stops-container">
+            <!-- Horizontal Flexbox Container for Stops -->
+            <div class="stop-fields" id="stop-1" style="display: none;">
+                <h4>Stop 1</h4>
+                <div class="form-group">
+                    {{ form.stop_1_location.label_tag }}
+                    {{ form.stop_1_location }}
+                </div>
+                <div class="form-group">
+                    {{ form.stop_1_start_time.label_tag }}
+                    {{ form.stop_1_start_time }}
+                </div>
+                <div class="form-group">
+                    {{ form.stop_1_duration.label_tag }}
+                    {{ form.stop_1_duration }}
+                </div>
+            </div>
+
+            <!-- Stop 2 -->
+            <div class="stop-fields" id="stop-2" style="display: none;">
+                <h4>Stop 2</h4>
+                <div class="form-group">
+                    {{ form.stop_2_location.label_tag }}
+                    {{ form.stop_2_location }}
+                </div>
+                <div class="form-group">
+                    {{ form.stop_2_start_time.label_tag }}
+                    {{ form.stop_2_start_time }}
+                </div>
+                <div class="form-group">
+                    {{ form.stop_2_duration.label_tag }}
+                    {{ form.stop_2_duration }}
+                </div>
+            </div>
+
+            <!-- Stop 3 -->
+            <div class="stop-fields" id="stop-3" style="display: none;">
+                <h4>Stop 3</h4>
+                <div class="form-group">
+                    {{ form.stop_3_location.label_tag }}
+                    {{ form.stop_3_location }}
+                </div>
+                <div class="form-group">
+                    {{ form.stop_3_start_time.label_tag }}
+                    {{ form.stop_3_start_time }}
+                </div>
+                <div class="form-group">
+                    {{ form.stop_3_duration.label_tag }}
+                    {{ form.stop_3_duration }}
+                </div>
+            </div>
         </div>
 
-        <!-- Starting Time Input -->
-        <div class="form-group">
-            {{ form.start_time.label_tag }}
-            {{ form.start_time }}
+        <!-- Add Stop Button and Required Stops Section -->
+        <div class="add-stop-container">
+            <button type="button" onclick="addStop()" class="add-stop-btn">Add Stop</button>
         </div>
-
-        <!-- Ending Time Input -->
-        <div class="form-group">
-            {{ form.end_time.label_tag }}
-            {{ form.end_time }}
-        </div>
-
-        <!-- Budget Input -->
-        <div class="form-group">
-            {{ form.budget.label_tag }}
-            {{ form.budget }}
-        </div>
-
-        <!-- Required Stops Input -->
-        <div class="form-group">
-            {{ form.required_stops.label_tag }}
-            {{ form.required_stops }}
-        </div>
-
-        <!-- Submit Button -->
+        
+        <!-- Submit Button (moved inside form at the bottom) -->
         <div class="button-container">
             <button class="submit-btn" type="submit">Submit</button>
         </div>
@@ -61,18 +112,17 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const startLocField = document.querySelector('#plan-form input[name="start_loc"]');
-        const startTimeField = document.querySelector('#plan-form input[name="start_time"]');
-        const endTimeField = document.querySelector('#plan-form input[name="end_time"]');
-        const budgetField = document.querySelector('#plan-form input[name="budget"]');
-        
-        // Optional: Additional JavaScript for input placeholders
-        startLocField.placeholder = "Enter your starting location";
-        startTimeField.placeholder = "Enter starting time";
-        endTimeField.placeholder = "Enter end time";
-        budgetField.placeholder = "Enter budget";
-    });
+    let stopCount = 0;
+
+    function addStop() {
+        if (stopCount < 3) {
+            stopCount += 1;
+            document.getElementById(`stop-${stopCount}`).style.display = 'block';
+        }
+        if (stopCount === 3) {
+            document.querySelector('.add-stop-btn').style.display = 'none'; // Hide add button after 3 stops
+        }
+    }
 </script>
 {% endblock %}
 {% endblock %}

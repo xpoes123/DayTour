@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'home',
     'authuser',
     'plan',
+    'social',
 ]
 
 MIDDLEWARE = [

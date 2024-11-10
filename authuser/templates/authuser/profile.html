@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+    <link rel="stylesheet" type="text/css" href="{% static 'authuser/css/profile.css' %}">
+{% endblock %}
+
+{% block title %}{{ profile_user.username }}'s Profile {% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>{{ profile_user.username }}</h2>
+    
+    <!-- Profile Links -->
+    <div class="profile-links">
+        <ul>
+            <li>Blog</li>
+            <li>Visits</li>
+            <li><a href="{% url 'home:home' %}">Edit Profile</a></li>
+        </ul>
+    </div>
+
+    <!-- Revolving Picture Gallery -->
+    <div class="liked-songs-gallery">
+        <div class="gallery">
+            {% for song in profile_user.liked_songs.all %}
+                <img src="{{ song.image }}" alt="Liked Song {{ song.title }}" class="gallery-image">
+            {% empty %}
+                <p>No liked songs to display.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const images = document.querySelectorAll(".gallery-image");
+        images.forEach((image, index) => {
+            image.style.animationDelay = `${index * 4}s`;
+        });
+    });
+</script>
+{% endblock %}

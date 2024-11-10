@@ -5,7 +5,7 @@
     <link rel="stylesheet" type="text/css" href="{% static 'authuser/css/login_register.css' %}">
 {% endblock %}
 
-{% block title %}Home - Sonder{% endblock %}
+{% block title %}Register{% endblock %}
 
 {% block content %}
 <div class="user_card">
@@ -61,6 +61,10 @@
             {% endif %}
         </form>
     </div>
+
+    <div class="redirect">
+        <p>Already have an account? <a href="{% url 'authuser:login' %}">Login</a></p>
+    </div>
 </div>
 
 {% block extra_js %}
@@ -72,7 +76,7 @@
     form_fields[3].placeholder = 'Enter password';
     form_fields[4].placeholder = 'Re-enter Password';
 
-    for (var i = 1; i < form_fields.length; i++) {	
+    for (var i = 1; i < form_fields.length; i++) {    
         form_fields[i].classList.add('form-control');
     }
 </script>

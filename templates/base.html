@@ -26,7 +26,11 @@
             <!-- Left Navigation Links -->
             <ul class="nav-left">
                 <li>
-                    <a href="{% url 'home:home' %}" class="login_btn">Plan</a>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'plan:plan' %}" class="login_btn">Swipe</a>
+                    {% else %}
+                        <a href="{% url 'authuser:login' %}" class="login_btn">Plan</a>
+                    {% endif %}
                 </li>
                 <li>
                     <a href="{% url 'home:home' %}" class="login_btn">Submit</a>
@@ -48,6 +52,9 @@
             
             <ul class="nav-right">
                 {% if user.is_authenticated %}
+                    <li>
+                        <a href="{% url 'authuser:profile' user.id %}" class="username-link">Hello, {{ user.username }}!</a>
+                    </li>
                     <li>
                         <a href="{% url 'authuser:logout' %}">Logout</a>
                     </li>
