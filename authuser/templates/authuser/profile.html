@@ -19,7 +19,7 @@
     <!-- Profile Links -->
     <div class="profile-links">
         <ul>
-            <li><a href="{% url 'blog:user_blogs' profile_user.id}">Blog</a></li>
+            <li><a href="{% url 'blog:user_blogs' profile_user.id %}">Blog</a></li>
             <li><a href="#">Visits</a></li>
             <li><a href="{% url 'authuser:edit_profile' profile_user.id%}">Edit Profile</a></li>
         </ul>

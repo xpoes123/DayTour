@@ -15,10 +15,4 @@ class PostForm(forms.Form):
         required=False,
         widget=forms.Textarea(attrs={'rows': 5, 'placeholder': 'Share your experience here!'})
     )
-    rating = forms.IntegerField(
-        label="Rating",
-        required=True,
-        min_value=1,
-        max_value=5,
-        widget=forms.Select(choices=[(i, f"{i} Star{'s' if i > 1 else ''}") for i in range(1, 6)])
-    )
+    rating = forms.IntegerField(widget=forms.HiddenInput(), label="Rating")  # Hidden widget

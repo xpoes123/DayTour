@@ -3,15 +3,15 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Location(models.Model):
-    name = models.CharField(max_length=100, default="Unnamed Location", unique=True)
-
+    google_id = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, default="DEFAULT")
     def __str__(self):
-        return self.name
+        return self.google_id
 
     def average_rating(self):
         """Calculate and return the average rating based on related reviews."""
-        reviews = self.location_reviews.all()  # Updated to match the new related_name
-        if not reviews:
+        reviews = self.location_reviews.all()
+        if not reviews.exists():
             return None  # No reviews to calculate an average
         return sum(review.rating for review in reviews) / reviews.count()
 

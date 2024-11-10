@@ -2,11 +2,11 @@
 from django.urls import path
 from . import views
 
-app_name = 'blog'  # This namespaces all URLs under 'blog'
+app_name = 'blog'
 
 urlpatterns = [
-    path('profile/<int:user_id>/blogs/', views.user_blogs, name='user_blogs'),
-    path('<int:blog_id>/', views.blog_detail, name='blog_detail'),
+    path('user/<int:user_id>', views.user_blogs, name='user_blogs'),  # Adjusted to 'user' instead of 'profile'
+    path('detail/<int:blog_id>/', views.blog_detail, name='blog_detail'),  # Simplified for clarity
     path('create_post/', views.create_post, name='create_post'),
-    path('', views.blog, name='blog'),  # The main blog view, now properly named
+    path('', views.blog, name='blog'),  # Main blog view
 ]

@@ -1,3 +1,14 @@
 from django.contrib import admin
+from .models import Location, Review  # Ensure this path matches where your models are defined
 
-# Register your models here.
+@admin.register(Location)
+class LocationAdmin(admin.ModelAdmin):
+    list_display = ('google_id', 'name')
+    search_fields = ('google_id', 'name')
+
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ('user', 'location', 'rating', 'review_text')
+    search_fields = ('user__username', 'location__google_id', 'review_text')
+    list_filter = ('rating',)
