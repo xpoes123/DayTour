@@ -14,16 +14,19 @@ from pathlib import Path
 import os
 import dj_database_url
 from dotenv import load_dotenv
-
+import sys
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+sys.path.append(BASE_DIR)
 import os
 
 G_API_KEY = os.getenv("G_API_KEY")
 
 DATABASES = {
-    'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
+    'default': dj_database_url.config(
+        default='postgres://u84l2u9o0rag4a:pf59b6bd9e8859688fc1fcb2e356a7470fdcbaf0b8ec60fd29e027f7e6956e05f@c5hilnj7pn10vb.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/dd16s3trjb93q3',
+        conn_max_age=600
+    )
 }
 
 # Quick-start development settings - unsuitable for production
@@ -35,7 +38,7 @@ SECRET_KEY = 'django-insecure-5v^%h_^yltact0pd)d4s+3(smoc=+yc-2vcu1%-&_v$xt=+50z
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['your-app-name.herokuapp.com']
+ALLOWED_HOSTS = ['daytour.herokuapp.com', '127.0.0.1']
 
 
 
