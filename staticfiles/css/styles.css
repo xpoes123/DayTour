@@ -54,7 +54,7 @@ nav {
 .nav-left, .nav-right {
     position: absolute;
     display: flex;
-    gap: 15px;
+    gap: 50px;
 }
 
 .nav-left {

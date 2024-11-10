@@ -1,7 +1,7 @@
 /* Container Styling */
 .container {
     width: 100%;
-    max-width: 800px;
+    max-width: 1000px;
     margin: 20px auto;
     padding: 20px;
     background-color: #ffffff;
@@ -29,9 +29,43 @@
 }
 
 /* Itinerary Section */
+.itinerary-section {
+    overflow-y: scroll;
+}
+
+/* Lots of scrollbar stuff */
+/* width */
+::-webkit-scrollbar {
+  width: 10px;
+}
+  
+/* Track */
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #888;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
 .itinerary-section h2 {
+    font-size: xx-large;
     color: #333333;
     margin-bottom: 10px;
+}
+
+/* Subheader */
+.subheader {
+    font-size: large;
+    text-align: center;
+    color: #333333;
+    font-weight: bold;
 }
 
 .itinerary-list {
@@ -41,6 +75,15 @@
 }
 
 /* Itinerary Item */
+.itinerary-item.selected {
+    color: #f0f0f0;
+    background-color: #606060;
+}
+
+.itinerary-item.selected:hover {
+    background-color: #555555
+}
+
 .itinerary-item {
     margin-bottom: 15px;
     padding: 15px;
@@ -57,7 +100,6 @@
 
 .basic-info {
     font-weight: bold;
-    color: #333333;
     display: flex;
     justify-content: space-between;
     align-items: center;
