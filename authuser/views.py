@@ -8,6 +8,8 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import HttpResponseForbidden
+from plan.models import Location, Itinerary
+
 
 
 
@@ -87,3 +89,8 @@ def edit_profile(request, user_id):
         'profile_form': profile_form,
         'password_form': password_form
     })
+    
+@login_required
+def visits(request, user_id):
+   
+    return render(request, 'plan:user_visits.html', {})

@@ -8,7 +8,7 @@ class PlanForm(forms.Form):
         widget=forms.TextInput(attrs={'placeholder': 'Where will you start?'})
     )
     radius = forms.DecimalField(
-        label='Radius',
+        label='Radius (m)',
         max_digits=5,
         decimal_places=0,
         required=False,

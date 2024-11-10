@@ -35,7 +35,7 @@ DATABASES = {
 SECRET_KEY = 'django-insecure-5v^%h_^yltact0pd)d4s+3(smoc=+yc-2vcu1%-&_v$xt=+50z'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['daytour.herokuapp.com', '127.0.0.1']
 
