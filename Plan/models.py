@@ -4,7 +4,8 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.postgres.fields import JSONField  # Use this import if your Django version is <3.1; otherwise use models.JSONField
 
 class Location(models.Model):
-    google_id = models.CharField(max_length=100, unique=True)
+    id = models.AutoField(primary_key=True)  # Explicitly defined integer ID
+    google_id = models.CharField(max_length=100)
     name = models.CharField(max_length=100, default="DEFAULT")
     num_visits = models.IntegerField(default=0)  # Database field for storing visit count
 

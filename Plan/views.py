@@ -8,6 +8,8 @@ from .services.googleplaces import getPlaces
 from .services.two_opt import get_best_path
 from .models import Location, Itinerary
 from django.core.paginator import Paginator
+from django.contrib.auth.decorators import login_required
+
 
 import json
 
@@ -104,7 +106,7 @@ def create_itinerary(user, place_array):
     itinerary = Itinerary.objects.create(user=user, locations=location_names)
     return itinerary
 
-
+@login_required
 def itinerary(request):
     # Sample data for travel_plan
     # travel_plan = [

@@ -3,8 +3,8 @@ from .models import Location, Review, Itinerary  # Ensure this path matches wher
 
 @admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
-    list_display = ('google_id', 'name')
-    search_fields = ('google_id', 'name')
+    list_display = ('id', 'google_id', 'name')
+    search_fields = ('id', 'google_id', 'name')
 
 
 @admin.register(Review)

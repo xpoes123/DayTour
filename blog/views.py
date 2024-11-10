@@ -8,6 +8,25 @@ from django.contrib.auth.models import User
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from .models import BlogPost
+
+def location_blogs(request, location_id):
+    # Get the location object by ID
+    location = get_object_or_404(Location, id=location_id)
+    
+    # Get all blog posts related to this location
+    blogs = BlogPost.objects.filter(location=location.name).order_by('-date_posted')
+    
+    # Set up pagination for the blog posts
+    paginator = Paginator(blogs, 5)  # Show 5 blog posts per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'location': location,
+        'page_obj': page_obj,
+    }
+    return render(request, 'blog/location_blogs.html', context)
 
 
 @login_required

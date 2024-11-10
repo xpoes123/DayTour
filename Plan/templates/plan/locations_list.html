@@ -36,7 +36,7 @@
                         <td>{{ location.name }}</td>
                         <td>{{ location.num_visits }}</td>
                         <td>
-                            <a href="#" class="view-button">View Reviews</a>
+                            <a href="{% url 'blog:location_blogs' location.id %}" class="view-button">Reviews</a>
                         </td>
                         <td>{{ location.average_rating|default:"N/A" }}</td>
                     </tr>
