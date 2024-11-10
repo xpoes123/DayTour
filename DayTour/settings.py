@@ -17,7 +17,6 @@ from dotenv import load_dotenv
 import sys
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-sys.path.append(BASE_DIR)
 import os
 
 G_API_KEY = os.getenv("G_API_KEY")
