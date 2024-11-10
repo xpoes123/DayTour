@@ -7,6 +7,9 @@
 
 {% block content %}
 <div class="container">
+    <div class="add-post-button-container">
+        <a href="{% url 'blog:create_post' %}" class="add-post-button">+</a>
+    </div>
     <h1>{{ blog_post.location }}</h1>
     
     <!-- Star Rating Display -->

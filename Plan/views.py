@@ -7,7 +7,28 @@ from .static.plan.js.place_list_to_map_url import path_to_url
 from .services.googleplaces import getPlaces
 from .services.two_opt import get_best_path
 from .models import Location, Itinerary
+from django.core.paginator import Paginator
+
 import json
+
+def locations_list(request):
+    search_query = request.GET.get('search', '')
+    locations = Location.objects.all()
+
+    if search_query:
+        locations = locations.filter(name__icontains=search_query)
+
+    # Paginate the locations
+    paginator = Paginator(locations, 10)  # Show 10 locations per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Pass the page object and search query to the template
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+    }
+    return render(request, 'plan/locations_list.html', context)
 
 def plan(request):
     """
@@ -64,13 +85,17 @@ def create_itinerary(user, place_array):
             google_id=place_id,
             defaults={'name': place_name}
         )
-        
-        # If a new location was created, assign the given name to it
+
+        # Increment num_visits each time the location is accessed or created
+        location.num_visits += 1
+        location.save()
+
+        # Log creation or access
         if created:
             print(f"Created new location: {place_name} with ID: {place_id}")
         else:
             print(f"Location already exists: {location.name} with ID: {place_id}")
-        
+
         # Add the Google ID and name to the lists for the itinerary
         location_ids.append(place_id)
         location_names.append(place_name)
@@ -78,6 +103,7 @@ def create_itinerary(user, place_array):
     # Create the itinerary, storing the list of Google IDs in the JSON field
     itinerary = Itinerary.objects.create(user=user, locations=location_names)
     return itinerary
+
 
 def itinerary(request):
     # Sample data for travel_plan

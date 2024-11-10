@@ -29,9 +29,43 @@
 }
 
 /* Itinerary Section */
+.itinerary-section {
+    overflow-y: scroll;
+}
+
+/* Lots of scrollbar stuff */
+/* width */
+::-webkit-scrollbar {
+  width: 10px;
+}
+  
+/* Track */
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #888;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
 .itinerary-section h2 {
+    font-size: xx-large;
     color: #333333;
     margin-bottom: 10px;
+}
+
+/* Subheader */
+.subheader {
+    font-size: large;
+    text-align: center;
+    color: #333333;
+    font-weight: bold;
 }
 
 .itinerary-list {
@@ -66,7 +100,6 @@
 
 .basic-info {
     font-weight: bold;
-    color: #333333;
     display: flex;
     justify-content: space-between;
     align-items: center;

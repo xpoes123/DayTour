@@ -9,7 +9,9 @@
 {% block content %}
 <div class="container">
     <h1>{{ user.username }}'s Blog Posts</h1>
-    
+    <div class="add-post-button-container">
+        <a href="{% url 'blog:create_post' %}" class="add-post-button">+</a>
+    </div>
     <ul class="blog-list-wrapper">
         {% for post in page_obj %}
             <li class="blog-list">

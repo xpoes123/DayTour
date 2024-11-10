@@ -63,6 +63,8 @@ def create_post(request):
                 messages.error(request, "No valid location found for this itinerary.")
         else:
             messages.error(request, "There was an error in your submission. Please check the fields below.")
+            print("Form errors:", form.errors)
+
     else:
         form = PostForm()
 

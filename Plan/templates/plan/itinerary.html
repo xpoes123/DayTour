@@ -36,12 +36,14 @@
         <!-- Right side: Itinerary Details -->
         <div class="itinerary-section">
             <h2>Itinerary</h2>
+            <hr>
+            <p class="subheader">Start: {{ travel_plan.0.0 }}</p>
             <ul class="itinerary-list" id="legs">
                 {% for step in travel_plan %}
                     <li class="itinerary-item" onclick="toggleDetails(this)">
                         <div class="basic-info">
-                            <span class="location">From: {{ step.0 }}</span> &rarr; 
-                            <span class="location">To: {{ step.1 }}</span>
+                            <!-- <span class="location">From: {{ step.0 }}</span> &rarr;  -->
+                            <span class="location"> {{ step.1 }}</span>
                         </div>
                         <!-- <div class="itinerary-details" style="display: none;">
                             <div class="itinerary-detail">

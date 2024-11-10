@@ -6,15 +6,19 @@ from django.contrib.postgres.fields import JSONField  # Use this import if your 
 class Location(models.Model):
     google_id = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=100, default="DEFAULT")
-    def __str__(self):
-        return self.google_id
+    num_visits = models.IntegerField(default=0)  # Database field for storing visit count
 
+    def __str__(self):
+        return self.name
+
+    @property
     def average_rating(self):
         """Calculate and return the average rating based on related reviews."""
         reviews = self.location_reviews.all()
         if not reviews.exists():
             return None  # No reviews to calculate an average
-        return sum(review.rating for review in reviews) / reviews.count()
+        return round(sum(review.rating for review in reviews) / reviews.count(), 1)
+
 
 class Review(models.Model):
     location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='location_reviews')
@@ -23,7 +27,7 @@ class Review(models.Model):
     review_text = models.TextField(max_length=1000, blank=True)
 
     def __str__(self):
-        return f"{self.user.username} rated {self.location.name} {self.rating} stars"
+        return f"{self.user.username} rated {self.location.name} {self.rating} stars" if len(self.review_text) < 2 else f"{self.review_text}"
 
 class Itinerary(models.Model):
     id = models.AutoField(primary_key=True)

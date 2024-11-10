@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+    <link rel="stylesheet" type="text/css" href="{% static 'plan/css/locations_list.css' %}">
+{% endblock %}
+
+{% block title %}All Locations{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>All Locations</h1>
+
+    <!-- Search Bar -->
+    <div class="search-container">
+        <form class="search-form" method="GET" action="{% url 'plan:locations_list' %}">
+            <input type="text" name="search" placeholder="Search locations..." value="{{ search_query }}">
+            <button type="submit">Search</button>
+        </form>
+    </div>
+
+    <!-- Locations Table -->
+    <div class="users-table-container">
+        <table id="locations-table">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0, 'locations-table')">Name</th>
+                    <th onclick="sortTable(1, 'locations-table')">Number of Visits</th>
+                    <th>View Reviews</th>
+                    <th onclick="sortTable(3, 'locations-table')">Average Rating</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for location in page_obj %}
+                    <tr>
+                        <td>{{ location.name }}</td>
+                        <td>{{ location.num_visits }}</td>
+                        <td>
+                            <a href="#" class="view-button">View Reviews</a>
+                        </td>
+                        <td>{{ location.average_rating|default:"N/A" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4">No locations found matching "{{ search_query }}"</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&search={{ search_query }}">&laquo; Previous</a>
+        {% endif %}
+
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&search={{ search_query }}">Next &raquo;</a>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Sorting function for tables (same as the user table)
+    function sortTable(columnIndex, tableId) {
+        const table = document.getElementById(tableId);
+        const tbody = table.querySelector("tbody");
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+        const isAscending = table.getAttribute("data-sort-dir") === "asc";
+
+        rows.sort((rowA, rowB) => {
+            const cellA = rowA.cells[columnIndex].textContent.trim();
+            const cellB = rowB.cells[columnIndex].textContent.trim();
+            const aValue = isNaN(parseFloat(cellA)) ? cellA.toLowerCase() : parseFloat(cellA);
+            const bValue = isNaN(parseFloat(cellB)) ? cellB.toLowerCase() : parseFloat(cellB);
+
+            let comparison = 0;
+            if (typeof aValue === "number" && typeof bValue === "number") {
+                comparison = aValue - bValue;
+            } else {
+                comparison = aValue > bValue ? 1 : -1;
+            }
+
+            return isAscending ? comparison : -comparison;
+        });
+
+        table.setAttribute("data-sort-dir", isAscending ? "desc" : "asc");
+        rows.forEach(row => tbody.appendChild(row));
+    }
+</script>
+{% endblock %}
