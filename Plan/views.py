@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate, login, logout, get_user_model
 from .static.plan.js.place_list_to_map_url import path_to_url
 from .services.googleplaces import getPlaces
 from .services.two_opt import get_best_path
-from .models import Location  # Import the Location model
+from .models import Location, Itinerary
 import json
 
 def plan(request):
@@ -21,31 +21,63 @@ def plan(request):
             radius = float(form.cleaned_data['radius'])
             locations = int(form.cleaned_data['locations'])
             
-            # Fetch places using the start location and radius
+            # Fetch places and limit to the specified number of locations
             place_array = getPlaces(start_loc, radius)
             
-            # Create or get each location in the database with name set to "DEFAULT"
-            locations_list = []
-            for place in place_array[:locations]:  # Limit to specified number of locations
-                # Extract google_id based on the data format returned by getPlaces
-                google_id = place['id'] if isinstance(place, dict) else place
-
-                # Use get_or_create to ensure location is in the database
-                location, created = Location.objects.get_or_create(
-                    google_id=google_id,
-                    defaults={'name': "DEFAULT"}  # Setting name to "DEFAULT"
-                )
-                locations_list.append(location)
-
-            # Calculate the optimal route using the verified/created locations
-            route = get_best_path([loc.google_id for loc in locations_list])
+            # Extract IDs and names from the place_array
+            id_array = []
+            name_lookup = {}
+            for place in place_array[:locations]:  # Limit to 'locations' items
+                place_id, place_name = place[0], place[1]
+                id_array.append(place_id)
+                name_lookup[place_id] = place_name
             
-            # Store the result in the session
+            # Create an itinerary using id_array (Google IDs) and store names
+            itinerary = create_itinerary(request.user, place_array[:locations])
+            
+            # Calculate the optimal route using the list of Google IDs in id_array
+            route = get_best_path(id_array)
+            
+            # Store the route and name lookup in the session
             request.session['route'] = route
+            request.session['name_lookup'] = name_lookup
+
             return redirect('plan:itinerary')
         else:
             messages.error(request, "Invalid form submission.")
     return render(request, 'plan/start.html', {'form': form})
+
+
+def create_itinerary(user, place_array):
+    """
+    Create a new itinerary for the user, storing locations as a list of Google IDs and names.
+    """
+    # Prepare lists to store Google IDs and names
+    location_ids = []
+    location_names = []
+
+    for place in place_array:
+        place_id, place_name = place[0], place[1]
+
+        # Check if the location already exists; if not, create it
+        location, created = Location.objects.get_or_create(
+            google_id=place_id,
+            defaults={'name': place_name}
+        )
+        
+        # If a new location was created, assign the given name to it
+        if created:
+            print(f"Created new location: {place_name} with ID: {place_id}")
+        else:
+            print(f"Location already exists: {location.name} with ID: {place_id}")
+        
+        # Add the Google ID and name to the lists for the itinerary
+        location_ids.append(place_id)
+        location_names.append(place_name)
+
+    # Create the itinerary, storing the list of Google IDs in the JSON field
+    itinerary = Itinerary.objects.create(user=user, locations=location_names)
+    return itinerary
 
 def itinerary(request):
     # Sample data for travel_plan
@@ -57,8 +89,9 @@ def itinerary(request):
     travel_plan = []
     partial_routes = []
     route = request.session.get('route', 'No route found')
+    name_lookup = request.session.get('name_lookup', 'Name lookup not found')
     for i in range(len(route)-1):
-        travel_plan.append([route[i],route[i+1],"0","0","0"])
+        travel_plan.append([name_lookup[route[i]],name_lookup[route[i+1]],0,0,0])
         partial_routes.append(path_to_url([route[i],route[i+1]]))
     path_map = path_to_url(route)
     context = {

@@ -144,3 +144,40 @@ form {
 .star.selected {
     color: #f5b301; /* Gold color for selected stars */
 }
+
+/* Style the dropdown menu container */
+.form-group select {
+    width: 100%;
+    padding: 10px;
+    font-size: 1em;
+    color: #333;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    appearance: none; /* Hides default dropdown arrow */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+.form-group select:focus {
+    border-color: #007BFF;
+    outline: none;
+}
+
+/* Add a custom arrow to the dropdown */
+.form-group select::after {
+    content: "▼";
+    font-size: 0.8em;
+    color: #777;
+    position: absolute;
+    right: 10px;
+    top: calc(50% - 0.5em);
+    pointer-events: none;
+}
+
+/* Dropdown options */
+.form-group select option {
+    color: #333;
+}

@@ -15,34 +15,21 @@
     <form method="POST" action="{% url 'blog:create_post' %}" id="blog-form"> 
         {% csrf_token %}
         
+        <!-- Itinerary Selection -->
         <div class="form-group">
-            {{ form.location.label_tag }}
-            {{ form.location }}
+            {{ form.itinerary.label_tag }}
+            {{ form.itinerary }}
         </div>
 
-        <div class="form-group">
-            {{ form.review.label_tag }}
-            {{ form.review }}
-        </div>
+        <!-- Dynamic location review and rating fields -->
+        <div id="location-fields-container" style="display:none;"></div>
 
-        <!-- Star Rating Interface -->
-        <div class="form-group">
-            <label>{{ form.rating.label }}</label>
-            <div class="star-rating" data-field="{{ form.rating.id_for_label }}">
-                {{ form.rating }} <!-- Hidden input for the rating value -->
-                {% for i in "12345" %}
-                    <span class="star" data-value="{{ i }}">&#9733;</span>
-                {% endfor %}
-            </div>
-        </div>
-        
         <!-- Submit Button -->
         <div class="button-container">
             <button class="submit-btn" type="submit">Submit</button>
         </div>
     </form>
-    
-    <!-- Messages Display -->
+
     {% if messages %}
         <ul class="messages">
             {% for message in messages %}
@@ -51,29 +38,93 @@
         </ul>
     {% endif %}
 </div>
+{% endblock %}
+
 {% block extra_js %}
 <script>
-    // JavaScript for star rating interaction
     document.addEventListener("DOMContentLoaded", function() {
-        // Select all star-rating containers
-        document.querySelectorAll('.star-rating').forEach(ratingContainer => {
-            const hiddenInput = document.getElementById(ratingContainer.dataset.field);
+        const itinerarySelect = document.getElementById("id_itinerary");
+        const locationFieldsContainer = document.getElementById("location-fields-container");
 
-            // Bind click event to each star within the container
-            ratingContainer.querySelectorAll('.star').forEach(star => {
-                star.addEventListener('click', () => {
-                    const rating = star.getAttribute('data-value');
-                    hiddenInput.value = rating;  // Update the hidden input with the selected rating
+        itinerarySelect.addEventListener("change", function() {
+            locationFieldsContainer.innerHTML = "";  // Clear previous content
 
-                    // Clear previous selections and highlight selected stars
-                    ratingContainer.querySelectorAll('.star').forEach(s => s.classList.remove('selected'));
-                    for (let i = 0; i < rating; i++) {
-                        ratingContainer.querySelectorAll('.star')[i].classList.add('selected');
-                    }
-                });
-            });
+            if (itinerarySelect.value) {
+                console.log(`Itinerary selected with ID: ${itinerarySelect.value}`); // Debugging: Check itinerary ID
+                fetch(`/blog/get_location_ids/${itinerarySelect.value}/`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Network response was not ok: ${response.statusText}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log("Received location IDs:", data.location_ids); // Debugging: Check fetched data
+                        
+                        // Display location fields container
+                        locationFieldsContainer.style.display = "block";
+                        
+                        // Populate review fields for each location ID
+                        data.location_ids.forEach((location_id, index) => {
+                            const locationFieldSet = document.createElement("fieldset");
+                            locationFieldSet.classList.add("form-group");
+
+                            // Location label
+                            const locationLabel = document.createElement("label");
+                            locationLabel.textContent = `Location ${index + 1}: ${location_id}`;
+                            locationFieldSet.appendChild(locationLabel);
+
+                            // Review textarea
+                            const locationReview = document.createElement("textarea");
+                            locationReview.name = `location_review_${location_id}`;
+                            locationReview.placeholder = "Write your review for this location...";
+                            locationReview.classList.add("form-group");
+                            locationFieldSet.appendChild(locationReview);
+
+                            // Star Rating Input
+                            const ratingContainer = document.createElement("div");
+                            ratingContainer.classList.add("form-group");
+                            ratingContainer.innerHTML = `<label>Rating</label>`;
+                            locationFieldSet.appendChild(ratingContainer);
+
+                            const starRatingContainer = document.createElement("div");
+                            starRatingContainer.classList.add("star-rating");
+
+                            // Hidden input for rating
+                            const ratingInput = document.createElement("input");
+                            ratingInput.type = "hidden";
+                            ratingInput.name = `location_rating_${location_id}`;
+                            starRatingContainer.appendChild(ratingInput);
+
+                            // Star elements for the rating
+                            for (let i = 1; i <= 5; i++) {
+                                const star = document.createElement("span");
+                                star.classList.add("star");
+                                star.dataset.value = i;
+                                star.innerHTML = "&#9733;";
+                                star.addEventListener("click", () => {
+                                    document.querySelectorAll(`[name="location_rating_${location_id}"] ~ .star`).forEach((s, j) => {
+                                        s.classList.toggle("selected", j < i);
+                                    });
+                                    ratingInput.value = i;
+                                });
+                                starRatingContainer.appendChild(star);
+                            }
+
+                            ratingContainer.appendChild(starRatingContainer);
+                            locationFieldSet.appendChild(ratingContainer);
+
+                            // Append the fieldset to the container
+                            locationFieldsContainer.appendChild(locationFieldSet);
+                        });
+                    })
+                    .catch(error => {
+                        console.error("Error fetching location IDs:", error); // Debugging: Log errors
+                    });
+            } else {
+                locationFieldsContainer.style.display = "none";
+            }
         });
     });
 </script>
-{% endblock %}
 {% endblock %}

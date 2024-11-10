@@ -2,11 +2,12 @@ from django.contrib import messages  # To display form errors in the template
 from django.shortcuts import render, redirect
 from .forms import PostForm
 from .models import BlogPost
-from plan.models import Review
+from plan.models import Review, Itinerary,Location
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
+from django.http import JsonResponse
 
 
 @login_required
@@ -14,37 +15,61 @@ def create_post(request):
     if request.method == 'POST':
         form = PostForm(request.POST)
         if form.is_valid():
-            # Extract data from the form
-            location = form.cleaned_data['location']
-            review_text = form.cleaned_data['review']
-            rating = form.cleaned_data['rating']
+            itinerary = form.cleaned_data['itinerary']
+            overall_review_text = form.cleaned_data['review']
+            overall_rating = form.cleaned_data['rating']
+            user = request.user
 
-            # Create and save the Review instance
-            review = Review.objects.create(
-                location=location,
-                user=request.user,
-                rating=rating,
-                review_text=review_text
-            )
+            if itinerary.locations:
+                # Loop through each location in itinerary.locations to handle individual reviews and create a BlogPost
+                for place_name in itinerary.locations:
+                    # Fetch the Location object by name
+                    location = get_object_or_404(Location, name=place_name)
+                    
+                    # Fetch individual review and rating for each location from POST data
+                    location_review_text = request.POST.get(f'location_review_{place_name}', overall_review_text)
+                    location_rating = request.POST.get(f'location_rating_{place_name}', overall_rating)
+                    
+                    try:
+                        # Convert rating to integer and validate within range
+                        location_rating = int(location_rating)
+                        if location_rating < 1 or location_rating > 5:
+                            raise ValueError("Invalid rating value")
+                    except ValueError:
+                        location_rating = overall_rating  # Fall back to overall rating if conversion fails
 
-            # Create and save the BlogPost instance using the same data
-            BlogPost.objects.create(
-                user=request.user,
-                location=location.name if hasattr(location, 'name') else location,  # Adjust depending on location model
-                review=review_text,
-                rating=rating
-            )
+                    # Create a Review instance for each location
+                    review = Review.objects.create(
+                        location=location,
+                        user=user,
+                        rating=location_rating,
+                        review_text=location_review_text
+                    )
 
-            # Redirect to the blog list view after successful creation
-            return redirect('blog:blog')  # Ensure this URL name exists
+                    # Create a BlogPost for each Review and associated Location
+                    BlogPost.objects.create(
+                        user=user,
+                        location=location.name,  # Associate the location name for this BlogPost
+                        review=review,  # Associate this review as the main review for the BlogPost
+                        rating=location_rating
+                    )
+
+                # Mark itinerary as reviewed if reviews have been created
+                itinerary.reviewed = True
+                itinerary.save()
+
+                return redirect('blog:blog')
+            else:
+                messages.error(request, "No valid location found for this itinerary.")
         else:
-            # If the form is invalid, print errors and display messages
-            print(form.errors)
             messages.error(request, "There was an error in your submission. Please check the fields below.")
     else:
         form = PostForm()
 
     return render(request, 'blog/create_post.html', {'form': form})
+
+
+
 
 def blog(request):
     # Fetch all blog posts ordered by date posted, most recent first
@@ -82,3 +107,14 @@ def user_blogs(request, user_id):
 def blog_detail(request, blog_id):
     blog_post = get_object_or_404(BlogPost, id=blog_id)
     return render(request, 'blog/blog_detail.html', {'blog_post': blog_post})
+
+
+def get_location_ids(request, itinerary_id):
+    print(f"Fetching locations for itinerary ID: {itinerary_id}")  # Debugging log
+    itinerary = get_object_or_404(Itinerary, id=itinerary_id)
+    
+    # Since locations is now a JSON field, we can directly access the list of Google IDs
+    location_ids = itinerary.locations
+    print(f"Location IDs: {location_ids}")  # Debugging log
+    
+    return JsonResponse({'location_ids': location_ids})
