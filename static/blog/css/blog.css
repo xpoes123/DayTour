@@ -1,0 +1,97 @@
+/* blog/css/blog_list.css */
+
+
+
+.container h1 {
+    text-align: center;
+    color: #333;
+    font-size: 2.2em;
+    margin-bottom: 20px;
+}
+
+ul.blog-list-wrapper {
+    list-style-type: none;
+    padding: 0;
+}
+
+.blog-list {
+    background: #f9f9f9;
+    padding: 20px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.blog-list:hover {
+    transform: translateY(-3px);
+}
+
+.blog-list h3 {
+    color: #007bff;
+    font-size: 1.5em;
+    margin-bottom: 10px;
+}
+
+.blog-list p {
+    color: #555;
+    text-align: left;
+    line-height: 1.6;
+}
+
+.blog-list small {
+    display: block;
+    color: #888;
+    margin-top: 10px;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+    font-size: 1.1em;
+}
+
+.pagination a {
+    color: #007bff;
+    margin: 0 10px;
+    text-decoration: none;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.pagination a:hover {
+    background-color: #007bff;
+    color: #fff;
+}
+
+.pagination span {
+    color: #555;
+}
+
+.add-post-button-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.add-post-button {
+    display: inline-block;
+    background-color: #007bff;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    width: 40px;
+    height: 40px;
+    text-align: center;
+    line-height: 40px;
+    border-radius: 50%;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.add-post-button:hover {
+    background-color: #0056b3;
+}

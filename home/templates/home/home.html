@@ -11,6 +11,11 @@
     <section class="hero">
         <h2>Plan Your Day</h2>
         <div class="left-text"><p>Welcome to Day Tour, let us help you plan your day of fun with your preferences. Tell us where you're starting, where you want to go, and how long you want to explore!</p></div>
+        {% if user.is_authenticated %}
+            <a href="{% url 'plan:plan' %}" class="login_btn">Start Planning</a>
+        {% else %}
+        <a href="{% url 'authuser:register' %}" class="login_btn">Join Now</a>
+        {% endif %}
     </section>
 
     <section class="features">

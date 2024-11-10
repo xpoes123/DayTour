@@ -1,0 +1,37 @@
+/* authuser/css/profile.css */
+
+.profile-picture {
+    margin: 20px 0;
+}
+
+.profile-picture img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-links ul {
+    list-style-type: none;  /* Removes bullet points */
+    padding: 0;
+    display: flex;  /* Aligns items horizontally */
+    justify-content: center;
+    gap: 15px;  /* Space between items */
+    margin-top: 15px;
+}
+
+.profile-links li {
+    font-size: 1.2em;
+}
+
+.profile-links a {
+    text-decoration: none;
+    color: #007bff;
+    transition: color 0.3s ease;
+}
+
+.profile-links a:hover {
+    color: #0056b3;
+}

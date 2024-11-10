@@ -15,22 +15,21 @@ import json
 
 def locations_list(request):
     search_query = request.GET.get('search', '')
-    locations = Location.objects.all()
-
+    
+    # Filter locations by search query and order by num_visits in descending order
     if search_query:
-        locations = locations.filter(name__icontains=search_query)
-
-    # Paginate the locations
-    paginator = Paginator(locations, 10)  # Show 10 locations per page
+        locations = Location.objects.filter(name__icontains=search_query).order_by('-num_visits')
+    else:
+        locations = Location.objects.all().order_by('-num_visits')
+    
+    paginator = Paginator(locations, 10)  # Paginate with 10 locations per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-
-    # Pass the page object and search query to the template
-    context = {
+    
+    return render(request, 'plan/locations_list.html', {
         'page_obj': page_obj,
         'search_query': search_query,
-    }
-    return render(request, 'plan/locations_list.html', context)
+    })
 
 def plan(request):
     """
