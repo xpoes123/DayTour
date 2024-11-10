@@ -38,6 +38,6 @@ class UserRating(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     location = models.ForeignKey(Location, on_delete=models.CASCADE)  # Direct reference to Location model
     rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])  # Rating from 1 to 5
-
+    review = models.CharField(max_length=511)
     def __str__(self):
         return f"{self.user.username} rated {self.location} {self.rating} stars"

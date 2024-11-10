@@ -1,0 +1,91 @@
+/* Container and Card Styling */
+.user_card {
+    width: 90%;
+    max-width: 500px;
+    padding: 30px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#form-title {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #333333;
+}
+
+/* Form Styling */
+.form_container {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.user-input {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%; /* Ensure consistent width for each input group */
+}
+
+.user-input label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #333333;
+}
+
+.user-input input,
+.user-input .input-group-append,
+.user-input .form-control {
+    width: 100%; /* Make input full-width inside container */
+    padding: 12px;
+    border: 1px solid #cccccc;
+    border-radius: 5px;
+    font-size: 1em;
+    transition: border-color 0.3s ease;
+}
+
+.user-input input:focus,
+.user-input .form-control:focus {
+    border-color: #007BFF;
+    outline: none;
+}
+
+/* Button Styling */
+.submit-btn {
+    appearance: button;
+    background-color: #405cf5;
+    border-radius: 6px;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 1em;
+    height: 44px;
+    margin-top: 20px;
+    padding: 0 25px;
+    width: 100%; /* Full-width button */
+    transition: transform 0.2s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+    text-align: center;
+}
+
+.submit-btn:hover {
+    background-color: #3a4edc;
+    box-shadow: rgba(50, 50, 93, 0.15) 0 4px 10px 0, rgba(0, 0, 0, 0.1) 0 2px 2px 0;
+    transform: scale(1.05);
+}
+
+.submit-btn:active {
+    transform: scale(0.98);
+    background-color: #334acc;
+}
+
+.submit-btn:focus {
+    box-shadow: rgba(50, 50, 93, 0.2) 0 6px 15px 0, rgba(0, 0, 0, 0.1) 0 2px 2px 0, rgba(50, 151, 211, 0.3) 0 0 0 4px;
+}

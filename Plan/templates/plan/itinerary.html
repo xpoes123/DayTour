@@ -21,7 +21,15 @@
     <div class="itinerary-container">
         <!-- Left side: Map -->
         <div class="map-section">
-            <img src="{% static 'plan/images/temp.png' %}" alt="Map" class="map-image">
+            <iframe
+                width="600"
+                height="450"
+                style="border:0"
+                loading="lazy"
+                allowfullscreen
+                referrerpolicy="no-referrer-when-downgrade"
+                src="{{ path_map }}">
+            </iframe>
         </div>
         
         <!-- Right side: Itinerary Details -->

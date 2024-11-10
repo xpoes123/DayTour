@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from .forms import PlanForm
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, get_user_model
+from .services.place_list_to_map_url import path_to_url
 
 
 
@@ -33,8 +34,9 @@ def itinerary(request):
         ["Location B", "Location C", "10 mins", "9:15 AM", "30 mins"],
         ["Location C", "Location D", "20 mins", "10:00 AM", "1.5 hours"],
     ]
-    
+    path_map = path_to_url(['ChIJQ-U7wYqAhYAReKjwcBt6SGU', 'ChIJE-5gllSBhYARsYVQC_gftuI', 'ChIJl3ZcoouAhYAR1DI821H-LUw', 'ChIJlRvon4yAhYARMw91ij6m610', 'ChIJB0Z9x4uAhYAR2rmxctOAnNA', 'ChIJ1855cG2BhYARSDtIa8RAsQs', 'ChIJ4W9VVouAhYARm7UjFtckzSE', 'ChIJmWz0tuKBhYARmCL4IYfCf0Q', 'ChIJYXDDl4qAhYAReRkaZFbsSzo', 'ChIJY8jq4G2BhYARSkNa7_mZ5eE'])
     context = {
         "travel_plan": travel_plan,
+        "path_map": path_map,
     }
     return render(request, 'plan/itinerary.html', context)

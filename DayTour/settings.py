@@ -75,6 +75,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'DayTour.wsgi.application'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases

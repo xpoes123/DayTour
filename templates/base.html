@@ -27,7 +27,7 @@
             <ul class="nav-left">
                 <li>
                     {% if user.is_authenticated %}
-                        <a href="{% url 'plan:plan' %}" class="login_btn">Swipe</a>
+                        <a href="{% url 'plan:plan' %}" class="login_btn">Plan</a>
                     {% else %}
                         <a href="{% url 'authuser:login' %}" class="login_btn">Plan</a>
                     {% endif %}

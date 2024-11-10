@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+    <link rel="stylesheet" type="text/css" href="{% static 'authuser/css/login_register.css' %}">
+{% endblock %}
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Edit Profile</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <h4>Profile Information</h4>
+        <div class="user-input">
+            {{ profile_form.username.label_tag }}
+            {{ profile_form.username }}
+        </div>
+        <div class="user-input">
+            {{ profile_form.profile_picture.label_tag }}
+            {{ profile_form.profile_picture }}
+        </div>
+
+        <h4>Change Password</h4>
+        <div class="user-input">
+            {{ password_form.old_password.label_tag }}
+            {{ password_form.old_password }}
+        </div>
+        <div class="user-input">
+            {{ password_form.new_password1.label_tag }}
+            {{ password_form.new_password1 }}
+        </div>
+        <div class="user-input">
+            {{ password_form.new_password2.label_tag }}
+            {{ password_form.new_password2 }}
+        </div>
+
+        <button type="submit" class="submit-btn">Save Changes</button>
+    </form>
+</div>
+{% endblock %}

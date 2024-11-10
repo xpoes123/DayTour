@@ -1,3 +1,4 @@
+# authuser/models.py
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
@@ -33,6 +34,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=150, unique=True, default="")
     email = models.EmailField(blank=True, default="", unique=True)
     name = models.CharField(max_length=255, blank=True, default="")
+    profile_picture = models.ImageField(
+        upload_to='profile_pictures/', 
+        default='profile_pictures/default.jpg'  # Path relative to MEDIA_ROOT
+    )
     
     is_active = models.BooleanField(default=True)
     is_superuser = models.BooleanField(default=False)
