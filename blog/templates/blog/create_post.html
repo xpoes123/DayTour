@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+    <link rel="stylesheet" type="text/css" href="{% static 'blog/css/create_post.css' %}">
+{% endblock %}
+
+{% block title %}Share Your Adventure{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Share Your Itinerary</h1>
+    <p>Create a blog post about your recent trip.</p>
+
+    <form method="POST" action="{% url 'blog:create_post' %}" id="blog-form"> 
+        {% csrf_token %}
+        
+        <div class="form-group">
+            {{ form.location.label_tag }}
+            {{ form.location }}
+        </div>
+
+        <div class="form-group">
+            {{ form.review.label_tag }}
+            {{ form.review }}
+        </div>
+
+        <!-- Star Rating Interface -->
+        <div class="form-group">
+            <label>{{ form.rating.label }}</label>
+            <div class="star-rating" data-field="{{ form.rating.id_for_label }}">
+                {{ form.rating }} <!-- Hidden input for the rating value -->
+                {% for i in "12345" %}
+                    <span class="star" data-value="{{ i }}">&#9733;</span>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Submit Button -->
+        <div class="button-container">
+            <button class="submit-btn" type="submit">Submit</button>
+        </div>
+    </form>
+    
+    <!-- Messages Display -->
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</div>
+{% block extra_js %}
+<script>
+    // JavaScript for star rating interaction
+    document.addEventListener("DOMContentLoaded", function() {
+        // Select all star-rating containers
+        document.querySelectorAll('.star-rating').forEach(ratingContainer => {
+            const hiddenInput = document.getElementById(ratingContainer.dataset.field);
+
+            // Bind click event to each star within the container
+            ratingContainer.querySelectorAll('.star').forEach(star => {
+                star.addEventListener('click', () => {
+                    const rating = star.getAttribute('data-value');
+                    hiddenInput.value = rating;  // Update the hidden input with the selected rating
+
+                    // Clear previous selections and highlight selected stars
+                    ratingContainer.querySelectorAll('.star').forEach(s => s.classList.remove('selected'));
+                    for (let i = 0; i < rating; i++) {
+                        ratingContainer.querySelectorAll('.star')[i].classList.add('selected');
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

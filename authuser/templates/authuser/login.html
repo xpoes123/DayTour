@@ -4,6 +4,7 @@
 {% block extra_head %}
     <link rel="stylesheet" type="text/css" href="{% static 'authuser/css/login_register.css' %}">
 {% endblock %}
+
 {% block title %}Login{% endblock %}
 
 {% block content %}
@@ -14,17 +15,22 @@
     <div class="form_container">
         <form method="POST" action="">
             {% csrf_token %}
+            
+            <!-- Render the form fields with labels and placeholders -->
             <div class="user-input">
-                <div class="input-group-append">
-                    <span class="input-group-text"><i class="fas fa-user"></i></span>
-                </div>
-                <input type="username" name="username" placeholder="Username" class="form">
+                {{ form.username.label_tag }}
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <div class="text-danger">{{ form.username.errors }}</div>
+                {% endif %}
             </div>
+            
             <div class="user-input">
-                <div class="input-group-append">
-                    <span class="input-group-text"><i class="fas fa-key"></i></span>
-                </div>
-                <input type="password" name="password" placeholder="Password" class="form-control">
+                {{ form.password.label_tag }}
+                {{ form.password }}
+                {% if form.password.errors %}
+                    <div class="text-danger">{{ form.password.errors }}</div>
+                {% endif %}
             </div>
 
             <div class="login_container">
@@ -39,43 +45,10 @@
                     </div>
                 {% endfor %}
             {% endif %}
-
-            <!-- Display Form Errors -->
-            {% if form.errors %}
-                <div class="error-box">
-                    <strong>There were some errors with your submission:</strong>
-                    <ul>
-                        {% for field in form %}
-                            {% for error in field.errors %}
-                                <li><strong>{{ field.label }}:</strong> {{ error }}</li>
-                            {% endfor %}
-                        {% endfor %}
-                        {% for error in form.non_field_errors %}
-                            <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endif %}
         </form>
     </div>
     <div class="redirect">
         <p>Don't have an account? <a href="{% url 'authuser:register' %}">Register</a></p>
     </div>
 </div>
-
-{% block extra_js %}
-    <script>
-        /* Because I didn't set placeholder values in forms.py, they will be set here using vanilla JavaScript
-        We start indexing at one because CSRF_token is considered and input fields are indexed accordingly
-        */
-
-        var form_fields = document.getElementsByTagName('input');
-        form_fields[1].placeholder = 'Username';
-        form_fields[2].placeholder = 'Password';
-
-        for (var i = 1; i < form_fields.length; i++) {	
-            form_fields[i].classList.add('form-control');
-        }
-    </script>
-{% endblock %}
 {% endblock %}

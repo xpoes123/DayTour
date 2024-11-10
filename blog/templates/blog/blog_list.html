@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+    <link rel="stylesheet" type="text/css" href="{% static 'blog/css/blog.css' %}">
+{% endblock %}
+{% block title %}All Blog Posts{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>All Blog Posts</h1>
+    <ul class="blog-list-wrapper">
+        {% for post in page_obj %}
+            <li class="blog-list">
+                <a href="{% url 'blog:blog_detail' post.id %}">
+                    <h3>{{ post.location }}</h3>
+                </a>
+
+                <a href="{% url 'authuser:profile' post.user.id %}">
+                    <h4><strong>Posted by:</strong> {{ post.user.username }}</h4>
+                </a>
+                
+
+                <!-- Star Rating Display -->
+                <div class="star-rating">
+                    {% for i in "12345" %}
+                        {% if i <= post.rating|stringformat:"d" %}
+                            <span class="star filled">&#9733;</span> <!-- Filled star -->
+                        {% else %}
+                            <span class="star">&#9734;</span> <!-- Empty star -->
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <p>{{ post.review|truncatewords:30 }}</p>
+                <small>Posted on {{ post.date_posted|date:"F j, Y" }}</small>
+            </li>
+        {% empty %}
+            <p>No blog posts to display.</p>
+        {% endfor %}
+    </ul>
+
+    <!-- Pagination Controls -->
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}">&laquo; Previous</a>
+        {% endif %}
+
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">Next &raquo;</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

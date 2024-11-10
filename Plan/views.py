@@ -3,7 +3,10 @@ from django.contrib.auth.models import User
 from .forms import PlanForm
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, get_user_model
-from .services.place_list_to_map_url import path_to_url
+from .static.plan.js.place_list_to_map_url import path_to_url
+from .services.googleplaces import getPlaces
+from .services.two_opt import get_best_path
+import json
 
 
 
@@ -15,13 +18,13 @@ def plan(request):
     if request.method == "POST":
         form = PlanForm(request.POST)
         if form.is_valid():
-            artists = [form.cleaned_data[f'artist_{i}'].strip() for i in range(1, 6) if form.cleaned_data.get(f'artist_{i}')]
-            if not artists:
-                messages.error(request, "Please enter at least one artist.")
-                return redirect('plan:start')
-            # Store the artists in the session
-            request.session['seed_artists'] = artists
-              # Redirect to recommend view after setting seed artists
+            start_loc = form.cleaned_data['start_loc']
+            radius = float(form.cleaned_data['radius'])
+            locations = int(form.cleaned_data['locations'])
+            place_array = getPlaces(start_loc, radius)
+            route = get_best_path(place_array[0:locations])
+            # Store the result in the session
+            request.session['route'] = route
             return redirect('plan:itinerary')
         else:
             messages.error(request, "Invalid form submission.")
@@ -29,14 +32,21 @@ def plan(request):
 
 def itinerary(request):
     # Sample data for travel_plan
-    travel_plan = [
-        ["Location A", "Location B", "15 mins", "8:00 AM", "1 hour"],
-        ["Location B", "Location C", "10 mins", "9:15 AM", "30 mins"],
-        ["Location C", "Location D", "20 mins", "10:00 AM", "1.5 hours"],
-    ]
-    path_map = path_to_url(['ChIJQ-U7wYqAhYAReKjwcBt6SGU', 'ChIJE-5gllSBhYARsYVQC_gftuI', 'ChIJl3ZcoouAhYAR1DI821H-LUw', 'ChIJlRvon4yAhYARMw91ij6m610', 'ChIJB0Z9x4uAhYAR2rmxctOAnNA', 'ChIJ1855cG2BhYARSDtIa8RAsQs', 'ChIJ4W9VVouAhYARm7UjFtckzSE', 'ChIJmWz0tuKBhYARmCL4IYfCf0Q', 'ChIJYXDDl4qAhYAReRkaZFbsSzo', 'ChIJY8jq4G2BhYARSkNa7_mZ5eE'])
+    # travel_plan = [
+    #     ["Location A", "Location B", "15 mins", "8:00 AM", "1 hour"],
+    #     ["Location B", "Location C", "10 mins", "9:15 AM", "30 mins"],
+    #     ["Location C", "Location D", "20 mins", "10:00 AM", "1.5 hours"],
+    # ]
+    travel_plan = []
+    partial_routes = []
+    route = request.session.get('route', 'No route found')
+    for i in range(len(route)-1):
+        travel_plan.append([route[i],route[i+1],"0","0","0"])
+        partial_routes.append(path_to_url([route[i],route[i+1]]))
+    path_map = path_to_url(route)
     context = {
         "travel_plan": travel_plan,
         "path_map": path_map,
+        "partial_routes": json.dumps(partial_routes)
     }
     return render(request, 'plan/itinerary.html', context)

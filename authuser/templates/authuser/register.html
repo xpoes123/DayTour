@@ -15,34 +15,32 @@
     <div class="d-flex justify-content-center form_container">
         <form method="POST" action="">
             {% csrf_token %}
+
             <div class="user-input">
-                <div class="input-group-append">
-                    <span class="input-group-text"><i class="fas fa-user"></i></span>
-                </div>
+                {{ form.username.label_tag }}
                 {{ form.username }}
             </div>
+            
             <div class="user-input">
-                <div class="input-group-append">
-                    <span class="input-group-text"><i class="fas fa-envelope-square"></i></span>
-                </div>
+                {{ form.email.label_tag }}
                 {{ form.email }}
             </div>
+            
             <div class="user-input">
-                <div class="input-group-append">
-                    <span class="input-group-text"><i class="fas fa-key"></i></span>
-                </div>
+                {{ form.password1.label_tag }}
                 {{ form.password1 }}
             </div>
+            
             <div class="user-input">
-                <div class="input-group-append">
-                    <span class="input-group-text"><i class="fas fa-key"></i></span>
-                </div>
+                {{ form.password2.label_tag }}
                 {{ form.password2 }}
             </div>
 
             <div class="login_container">
                 <input class="submit-btn" type="submit" value="Register Account">
             </div>
+            
+            <!-- Display Form Errors -->
             {% if form.errors %}
                 <div class="error-box">
                     <span class="close-btn">&times;</span>
@@ -67,18 +65,4 @@
     </div>
 </div>
 
-{% block extra_js %}
-<script>
-    // Query All input fields
-    var form_fields = document.getElementsByTagName('input');
-    form_fields[1].placeholder = 'Username';
-    form_fields[2].placeholder = 'Email';
-    form_fields[3].placeholder = 'Enter password';
-    form_fields[4].placeholder = 'Re-enter Password';
-
-    for (var i = 1; i < form_fields.length; i++) {    
-        form_fields[i].classList.add('form-control');
-    }
-</script>
-{% endblock %}
 {% endblock %}

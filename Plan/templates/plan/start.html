@@ -21,77 +21,15 @@
             </div>
 
             <div class="form-group">
-                {{ form.start_time.label_tag }}
-                {{ form.start_time }}
-            </div>
-
-            <div class="form-group">
-                {{ form.end_time.label_tag }}
-                {{ form.end_time }}
-            </div>
-
-            <div class="form-group">
-                {{ form.budget.label_tag }}
-                {{ form.budget }}
-            </div>
-        </div>
-        
-        <div id="required-stops-section" class="stops-container">
-            <!-- Horizontal Flexbox Container for Stops -->
-            <div class="stop-fields" id="stop-1" style="display: none;">
-                <h4>Stop 1</h4>
-                <div class="form-group">
-                    {{ form.stop_1_location.label_tag }}
-                    {{ form.stop_1_location }}
-                </div>
-                <div class="form-group">
-                    {{ form.stop_1_start_time.label_tag }}
-                    {{ form.stop_1_start_time }}
-                </div>
-                <div class="form-group">
-                    {{ form.stop_1_duration.label_tag }}
-                    {{ form.stop_1_duration }}
-                </div>
-            </div>
-
-            <!-- Stop 2 -->
-            <div class="stop-fields" id="stop-2" style="display: none;">
-                <h4>Stop 2</h4>
-                <div class="form-group">
-                    {{ form.stop_2_location.label_tag }}
-                    {{ form.stop_2_location }}
-                </div>
-                <div class="form-group">
-                    {{ form.stop_2_start_time.label_tag }}
-                    {{ form.stop_2_start_time }}
-                </div>
-                <div class="form-group">
-                    {{ form.stop_2_duration.label_tag }}
-                    {{ form.stop_2_duration }}
-                </div>
-            </div>
-
-            <!-- Stop 3 -->
-            <div class="stop-fields" id="stop-3" style="display: none;">
-                <h4>Stop 3</h4>
-                <div class="form-group">
-                    {{ form.stop_3_location.label_tag }}
-                    {{ form.stop_3_location }}
-                </div>
-                <div class="form-group">
-                    {{ form.stop_3_start_time.label_tag }}
-                    {{ form.stop_3_start_time }}
-                </div>
-                <div class="form-group">
-                    {{ form.stop_3_duration.label_tag }}
-                    {{ form.stop_3_duration }}
-                </div>
+                {{ form.radius.label_tag }}
+                {{ form.radius }}
             </div>
         </div>
 
-        <!-- Add Stop Button and Required Stops Section -->
-        <div class="add-stop-container">
-            <button type="button" onclick="addStop()" class="add-stop-btn">Add Stop</button>
+        <div class="form-group">
+            <label for="id_locations">Locations:</label>
+            <input type="range" id="id_locations" name="locations" min="1" max="10" step="1" value="5" oninput="document.getElementById('locationValue').textContent = this.value">
+            <span id="locationValue">5</span> <!-- Displays the default value -->
         </div>
         
         <!-- Submit Button (moved inside form at the bottom) -->

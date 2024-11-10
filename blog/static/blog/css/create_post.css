@@ -1,0 +1,147 @@
+/* General Container Styling */
+.container {
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto 0;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.container h1 {
+    text-align: center;
+    font-size: 1.8em;
+    color: #333333;
+    margin-bottom: 10px;
+}
+
+.container p {
+    text-align: center;
+    color: #666666;
+    margin-bottom: 20px;
+}
+
+/* Form Styling */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%; /* Full width of the container */
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%; /* Full width of the container */
+}
+
+.form-group label {
+    font-size: 1em;
+    color: #333333;
+    margin-bottom: 5px;
+    font-weight: bold;
+    text-align: left;
+}
+
+.form-group input[type="text"],
+.form-group input[type="time"],
+.form-group input[type="number"],
+.form-group textarea {
+    width: 100%; /* Full width */
+    height: 150px;
+    padding: 12px;
+    font-size: 1em;
+    color: #333333;
+    border: 1px solid #cccccc;
+    border-radius: 5px;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="time"]:focus,
+.form-group input[type="number"]:focus,
+.form-group textarea:focus {
+    border-color: #007BFF;
+    outline: none;
+}
+
+/* Full-width Submit Button */
+.button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.submit-btn {
+    padding: 12px 20px;
+    background-color: #007BFF;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    max-width: 200px;
+}
+
+.submit-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Message Display Styling */
+.messages {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 20px;
+}
+
+.messages li {
+    padding: 10px 15px;
+    background-color: #f8d7da;
+    color: #721c24;
+    border-left: 5px solid #f5c6cb;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-size: 0.95em;
+    text-align: left;
+}
+
+/* Add Stop Button */
+.add-stop-btn {
+    background-color: #007BFF;
+    color: #ffffff;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 0 auto;
+}
+
+.add-stop-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Stop Fields */
+.stop-fields {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.star-rating {
+    display: inline-flex;
+    cursor: pointer;
+}
+
+.star {
+    font-size: 2em;
+    color: #ccc;
+}
+
+.star.selected {
+    color: #f5b301; /* Gold color for selected stars */
+}

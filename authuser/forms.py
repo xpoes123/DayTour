@@ -11,6 +11,13 @@ class CreateUserForm(UserCreationForm):
         model = User
         fields = ['username', 'email', 'password1', 'password2']
         
+    def __init__(self, *args, **kwargs):
+        super(CreateUserForm, self).__init__(*args, **kwargs)
+        self.fields['username'].widget.attrs.update({'placeholder': 'Username'})
+        self.fields['email'].widget.attrs.update({'placeholder': 'Email'})
+        self.fields['password1'].widget.attrs.update({'placeholder': 'Enter password'})
+        self.fields['password2'].widget.attrs.update({'placeholder': 'Re-enter password'})
+        
 class EditProfileForm(forms.ModelForm):
     username = forms.CharField(max_length=150, required=True)
     profile_picture = forms.ImageField(required=False)  # Optional field

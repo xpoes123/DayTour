@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block extra_head %}
+    <link rel="stylesheet" type="text/css" href="{% static 'blog/css/blog_detail.css' %}">
+{% endblock %}
+{% block title %}{{ blog_post.location }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ blog_post.location }}</h1>
+    
+    <!-- Star Rating Display -->
+    <div class="star-rating">
+        {% for i in "12345" %}
+            {% if i <= blog_post.rating|stringformat:"d" %}
+                <span class="star filled">&#9733;</span>
+            {% else %}
+                <span class="star">&#9734;</span>
+            {% endif %}
+        {% endfor %}
+    </div>
+    
+    <div class="blog_text">
+        <p>{{ blog_post.review }}</p>
+    </div>
+    <small>Posted on {{ blog_post.date_posted|date:"F j, Y" }}</small>
+</div>
+{% endblock %}

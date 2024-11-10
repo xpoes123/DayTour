@@ -7,33 +7,25 @@ class PlanForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={'placeholder': 'Where will you start?'})
     )
-    start_time = forms.TimeField(
-        label='Starting Time',
+    radius = forms.DecimalField(
+        label='Radius',
+        max_digits=5,
+        decimal_places=0,
         required=False,
-        widget=forms.TimeInput(attrs={'type': 'time', 'placeholder': 'Starting time'})
+        widget=forms.NumberInput(attrs={'placeholder': 'Enter your radius in meters'})
     )
-    end_time = forms.TimeField(
-        label='Ending Time',
+    
+    locations = forms.IntegerField(
+        label='Locations',
         required=False,
-        widget=forms.TimeInput(attrs={'type': 'time', 'placeholder': 'End time'})
+        widget=forms.NumberInput(
+            attrs={
+                'type': 'range',  # This creates a slider
+                'min': '1',       # Minimum value of the slider
+                'max': '9',      # Maximum value of the slider
+                'value': '5',     # Default value (you can adjust this)
+                'step': '1',      # Step size for the slider
+                'placeholder': 'Enter how many locations you want to visit',
+            }
+        )
     )
-    budget = forms.DecimalField(
-        label='Budget',
-        max_digits=10,
-        decimal_places=2,
-        required=False,
-        widget=forms.NumberInput(attrs={'placeholder': 'Enter your budget in dollars'})
-    )
-
-    # Placeholder fields for required stops
-    stop_1_location = forms.CharField(label="Location", max_length=100, required=False)
-    stop_1_start_time = forms.TimeField(label="Start Time", required=False, widget=forms.TimeInput(attrs={'type': 'time'}))
-    stop_1_duration = forms.DurationField(label="Duration (min)", required=False)
-
-    stop_2_location = forms.CharField(label="Location", max_length=100, required=False)
-    stop_2_start_time = forms.TimeField(label="Start Time", required=False, widget=forms.TimeInput(attrs={'type': 'time'}))
-    stop_2_duration = forms.DurationField(label="Duration (min)", required=False)
-
-    stop_3_location = forms.CharField(label="Location", max_length=100, required=False)
-    stop_3_start_time = forms.TimeField(label="Start Time", required=False, widget=forms.TimeInput(attrs={'type': 'time'}))
-    stop_3_duration = forms.DurationField(label="Duration (min)", required=False)

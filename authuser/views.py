@@ -4,6 +4,23 @@ from .forms import CreateUserForm, EditProfileForm, CustomPasswordChangeForm
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, get_user_model, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
+from django.core.paginator import Paginator
+from django.db.models import Q
+from django.http import HttpResponseForbidden
+
+
+
+def users_list(request):
+    query = request.GET.get('q', '')  # Get the search query from the request
+    users = User.objects.filter(Q(username__icontains=query) | Q(email__icontains=query)).order_by('username')
+
+    paginator = Paginator(users, 10)  # Show 10 users per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'authuser/users_list.html', {'users': users, 'page_obj': page_obj})
+
 
 def register(request):
     """
@@ -23,17 +40,17 @@ def login_page(request):
     """
     Login request to login to an existing account
     """
+    form = AuthenticationForm()  # Initialize the form
     if request.method == "POST":
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
+        form = AuthenticationForm(request, data=request.POST)  # Populate with POST data
+        if form.is_valid():
+            user = form.get_user()
             login(request, user)
             return redirect('home:home')
         else:
             messages.info(request, "Username or Password is incorrect")
-    context = {}
+
+    context = {'form': form}
     return render(request, 'authuser/login.html', context)
 
 def logout_user(request):
@@ -46,6 +63,10 @@ def profile(request, user_id):
 
 @login_required
 def edit_profile(request, user_id):
+    # Ensure the logged-in user is the one being edited
+    if request.user.id != user_id:
+        return HttpResponseForbidden("You do not have permission to edit this profile.")
+
     user = get_object_or_404(User, id=user_id)
 
     if request.method == 'POST':
@@ -56,7 +77,7 @@ def edit_profile(request, user_id):
             profile_form.save()
             password_form.save()
             update_session_auth_hash(request, password_form.user)  # Keep user logged in after password change
-            return redirect('authuser/profile.html')  # Replace 'profile' with your profile page's URL name
+            return redirect('authuser:profile', user_id=user.id)
 
     else:
         profile_form = EditProfileForm(instance=user)

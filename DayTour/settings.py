@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'home',
     'authuser',
     'plan',
-    'social',
+    'blog',
 ]
 
 MIDDLEWARE = [
@@ -59,8 +59,8 @@ ROOT_URLCONF = 'DayTour.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],  # Global template directory
-        'APP_DIRS': True,
+        'DIRS': [BASE_DIR / "templates"],  # Add global templates folder here if used
+        'APP_DIRS': True,  # Automatically look in app-specific templates folders
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -76,7 +76,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'DayTour.wsgi.application'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 # Database
@@ -88,6 +88,7 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
 
 
 # Password validation

@@ -22,6 +22,7 @@
         <!-- Left side: Map -->
         <div class="map-section">
             <iframe
+                id="map"
                 width="600"
                 height="450"
                 style="border:0"
@@ -35,14 +36,14 @@
         <!-- Right side: Itinerary Details -->
         <div class="itinerary-section">
             <h2>Itinerary</h2>
-            <ul class="itinerary-list">
+            <ul class="itinerary-list" id="legs">
                 {% for step in travel_plan %}
                     <li class="itinerary-item" onclick="toggleDetails(this)">
                         <div class="basic-info">
                             <span class="location">From: {{ step.0 }}</span> &rarr; 
                             <span class="location">To: {{ step.1 }}</span>
                         </div>
-                        <div class="itinerary-details" style="display: none;">
+                        <!-- <div class="itinerary-details" style="display: none;">
                             <div class="itinerary-detail">
                                 <span class="label">Commute Time:</span>
                                 <span class="value">{{ step.2 }}</span>
@@ -55,13 +56,13 @@
                                 <span class="label">Duration:</span>
                                 <span class="value">{{ step.4 }}</span>
                             </div>
-                            <!-- Edit Button and Options (Initially Hidden) -->
+                            
                             <button type="button" class="edit-btn" onclick="event.stopPropagation(); toggleEditOptions(this)">Edit</button>
                             <div class="edit-options" style="display: none;">
                                 <button type="button" class="option-btn" onclick="deleteLocation(this)">Delete Location</button>
                                 <button type="button" class="option-btn" onclick="changeDuration(this)">Change Duration</button>
                             </div>
-                        </div>
+                        </div> -->
                     </li>
                 {% endfor %}
             </ul>
@@ -76,19 +77,35 @@
 
 {% block extra_js %}
 <script>
+    const listItems = document.querySelectorAll('#legs li');
     // Toggle details display and show the Edit button when details are visible
     function toggleDetails(item) {
-        const details = item.querySelector('.itinerary-details');
-        const isVisible = details.style.display === 'block';
-        
-        // Toggle display of details and edit options based on current visibility
-        details.style.display = isVisible ? 'none' : 'block';
-        
-        // Hide edit options if details are hidden
-        if (isVisible) {
-            const editOptions = item.querySelector('.edit-options');
-            editOptions.style.display = 'none';
+        const selectedItem = document.querySelector('.itinerary-item.selected');
+        if (selectedItem && selectedItem !== item) {
+            selectedItem.classList.remove('selected');
         }
+        item.classList.toggle('selected');
+        if (item.classList.contains('selected')) {
+            partialRoutes = JSON.parse('{{partial_routes|safe}}');
+            console.log(Array.from(listItems).indexOf(item));
+            console.log(partialRoutes);
+            console.log(partialRoutes[Array.from(listItems).indexOf(item)]);
+            document.getElementById('map').src = partialRoutes[Array.from(listItems).indexOf(item)];
+        } else {
+            console.log('{{ path_map }}');
+            document.getElementById('map').src = '{{ path_map|safe }}';
+        }
+        // const details = item.querySelector('.itinerary-details');
+        // const isVisible = details.style.display === 'block';
+        
+        // // Toggle display of details and edit options based on current visibility
+        // details.style.display = isVisible ? 'none' : 'block';
+        
+        // // Hide edit options if details are hidden
+        // if (isVisible) {
+        //     const editOptions = item.querySelector('.edit-options');
+        //     editOptions.style.display = 'none';
+        // }
     }
 
     // Toggle edit options display

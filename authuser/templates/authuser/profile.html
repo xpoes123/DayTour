@@ -13,13 +13,13 @@
 
     <!-- Profile Picture -->
     <div class="profile-picture">
-        <img src="{{ profile_user.profile_picture.url|default:'/media/profile_pictures/default.jpg' }}" alt="{{ profile_user.username }}'s profile picture">
+<img src="{{ profile_user.profile_picture.url|default:'/media/profile_pictures/default.jpg' }}" alt="{{ profile_user.username }}'s profile picture">
     </div>
 
     <!-- Profile Links -->
     <div class="profile-links">
         <ul>
-            <li><a href="#">Blog</a></li>
+            <li><a href="{% url 'blog:user_blogs' profile_user.id}">Blog</a></li>
             <li><a href="#">Visits</a></li>
             <li><a href="{% url 'authuser:edit_profile' profile_user.id%}">Edit Profile</a></li>
         </ul>
