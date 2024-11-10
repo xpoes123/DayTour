@@ -2,6 +2,7 @@ import random
 import matplotlib.pyplot as plt
 import math
 import distance_matrix
+from googleplaces import getPlaces
 
 # custom distance matrix for pairwise distances
 def generate_distance_matrix(points):
@@ -140,6 +141,20 @@ def get_best_path(locations):
 # plot_path(points, optimized_path_indices, "Optimized Path with 2-opt")
 
 # print(optimized_path_indices)
+
+# places = getPlaces()[:-1]
+
+# print(places)
+# print(len(places))
+
+# matrix = distance_matrix.get_distance_matrix(places)
+
+# print(matrix)
+
+# optimal_locations = get_best_path(places)
+
+# print(optimal_locations)
+# print(len(optimal_locations))
 
 
 
