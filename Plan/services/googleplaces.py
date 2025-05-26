@@ -1,10 +1,12 @@
 import requests
 from django.conf import settings
 import random
+from urllib import parse
+
 
 API_KEY = settings.G_API_KEY
 
-def getPlaces(textQuery='Wisconsin State Capitol', radius=4000):
+def getPlaces(textQuery='Wisconsin State Capitol', radius=4000, transit_mode="walking"):
     # Step 1: Convert textQuery into lat/long using a "Text Search" request
     url1 = 'https://places.googleapis.com/v1/places:searchText'
     headers1 = {
@@ -89,3 +91,17 @@ def get_place_photo(place_id, maxwidth=400):
         f"https://maps.googleapis.com/maps/api/place/photo?"
         f"maxwidth={maxwidth}&photo_reference={photo_reference}&key={API_KEY}"
     )
+    
+def path_to_url(placeIDs, mode='walking'):
+    output = 'https://www.google.com/maps/embed/v1/directions'
+    if mode is None:
+        mode = 'walking'
+    print(mode)
+    output += '?'+parse.urlencode({'key': API_KEY, 'origin': 'place_id:'+placeIDs[0], 'destination': 'place_id:'+placeIDs[-1], 'mode': mode})
+    if len(placeIDs) > 2:
+        output += '&waypoints='
+        for i in range(1,len(placeIDs)-1):
+            output += parse.quote_plus('place_id:'+placeIDs[i])
+            if i < len(placeIDs)-2:
+                output += '%7C'
+    return output

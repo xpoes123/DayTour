@@ -89,17 +89,22 @@
                     </div>
                 <div class="collapsible-content">
                     <div class="transit-options">
-                        <input type="radio" id="walk" name="transit_mode" value="walking" hidden>
+                        <input type="radio" id="walk" name="transit_mode" value="walking" hidden
+                            {% if form.data.transit_mode == "walking" or not form.data.transit_mode %}checked{% endif %}>
                         <label for="walk" class="transit-btn">Walking</label>
 
-                        <input type="radio" id="drive" name="transit_mode" value="driving" hidden>
+                        <input type="radio" id="drive" name="transit_mode" value="driving" hidden
+                            {% if form.data.transit_mode == "driving" %}checked{% endif %}>
                         <label for="drive" class="transit-btn">Driving</label>
 
-                        <input type="radio" id="bike" name="transit_mode" value="biking" hidden>
+                        <input type="radio" id="bike" name="transit_mode" value="bicycling" hidden
+                            {% if form.data.transit_mode == "bicycling" %}checked{% endif %}>
                         <label for="bike" class="transit-btn">Biking</label>
 
-                        <input type="radio" id="public" name="transit_mode" value="transit" hidden>
+                        <input type="radio" id="public" name="transit_mode" value="transit" hidden
+                            {% if form.data.transit_mode == "transit" %}checked{% endif %}>
                         <label for="public" class="transit-btn">Public Transit</label>
+
                     </div>
                 </div>
             </div>

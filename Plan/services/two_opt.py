@@ -2,7 +2,6 @@ import random
 import matplotlib.pyplot as plt
 import math
 from .distance_matrix import get_distance_matrix
-#from googleplaces import getPlaces
 
 def generate_distance_matrix(points):
     n = len(points)
@@ -70,37 +69,20 @@ def two_opt(path, distance_matrix):
         count += 1
     return path_indices
 
-# visualization functions
-def plot_path(points, path_indices, title):
-    lat_vals = [points[i].lat for i in path_indices] + [points[path_indices[0]].lat]  # Latitude values
-    long_vals = [points[i].long for i in path_indices] + [points[path_indices[0]].long]  # Longitude values
-    plt.plot(long_vals, lat_vals, marker='o', markersize=5)
-    plt.title(title)
-    plt.xlabel("Longitude")
-    plt.ylabel("Latitude")
-    plt.show()
-
 # locations = place IDs
 # returns the best path going to all the given locations
 def get_best_path(locations):
     # get the distance matrix for the given locations
     dist_matrix = get_distance_matrix(locations)
 
-    # # temporarily generate the distance matrix otherwise to avoid API calls
-    # n = 20
-    # points = create_random_path(n)
-    # dist_matrix = generate_distance_matrix(points)
-
     # generate a random starting path from the list of locations
     initial_path_indices = random.sample(list(range(len(locations))), len(locations))
     # initial_path_indices = random.sample(list(range(len(points))), len(points))
 
-    # print(initial_path_indices)
 
     # run 2-opt algorithm to optimize the path
     optimized_path_indices = two_opt(initial_path_indices, dist_matrix)
 
-    # print(optimized_path_indices)
     # create a new list of place IDs, ending with the start node to create a full loop
     optimized_locations = [locations[index] for index in optimized_path_indices]
     optimized_locations.append(locations[0])
@@ -128,7 +110,7 @@ def get_best_path(locations):
 
 # get_best_path([])
 
-# # Plot the initial random path
+# # Plot the initial random pathg
 # initial_path_indices = list(range(len(dist_matrix)))  # Initial order of indices
 # plot_path(points, initial_path_indices, "Initial Path")
 

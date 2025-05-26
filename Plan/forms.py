@@ -57,9 +57,10 @@ class PlanForm(forms.Form):
         choices=[
             ('walking', 'Walking'),
             ('driving', 'Driving'),
-            ('biking', 'Biking'),
+            ('bicycling', 'Biking'),
             ('transit', 'Public Transit')
         ],
         required=False,
+        initial='walking',
         widget=forms.RadioSelect
     )
