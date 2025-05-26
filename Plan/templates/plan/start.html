@@ -8,7 +8,6 @@
 {% block content %}
 <div class="container">
     <h1>Welcome to Day Tour</h1>
-    <p>Fill out the form to get your itinerary</p>
 
     <form method="POST" action="{% url 'plan:plan' %}" id="plan-form"> 
         {% csrf_token %}
@@ -29,15 +28,93 @@
         <div class="form-group">
             <label for="id_locations">Locations:</label>
             <input type="range" id="id_locations" name="locations" min="1" max="10" step="1" value="5" oninput="document.getElementById('locationValue').textContent = this.value">
-            <span id="locationValue">5</span> <!-- Displays the default value -->
+            <span id="locationValue">5</span>
         </div>
-        
-        <!-- Submit Button (moved inside form at the bottom) -->
+
+        <!-- Advanced Options Toggle -->
+        <div class="form-group">
+            <label for="advanced-toggle">Advanced</label>
+            <label class="switch">
+                <input type="checkbox" id="advanced-toggle" onchange="toggleAdvancedOptions(this)">
+                <span class="slider round"></span>
+            </label>
+        </div>
+
+        <!-- Advanced Options Hidden by Default -->
+        <div id="advanced-options" style="display: none; margin-top: 1em;">
+            <div class="collapsible-group">
+
+                <!-- Time Section -->
+                <div class="collapsible">
+                    <div class="collapsible-header" onclick="toggleCollapse(this)">
+                        Time
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="form-group">
+                            <div class="time-range">
+                                <div>
+                                    {{ form.start_time.label_tag }}
+                                    {{ form.start_time }}
+                                </div>
+                                <div>
+                                    {{ form.end_time.label_tag }}
+                                    {{ form.end_time }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Food Section -->
+                <div class="collapsible">
+                    <div class="collapsible-header" onclick="toggleCollapse(this)">
+                        Food
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="form-group">
+                            <label for="{{ form.budget.id_for_label }}">Budget (per person):</label>
+                            <div class="budget-input-wrapper">
+                                <span class="dollar-prefix">$</span>
+                                {{ form.budget }}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Transit Section -->
+                <div class="collapsible">
+                    <div class="collapsible-header" onclick="toggleCollapse(this)">
+                        Transit
+                    </div>
+                <div class="collapsible-content">
+                    <div class="transit-options">
+                        <input type="radio" id="walk" name="transit_mode" value="walking" hidden>
+                        <label for="walk" class="transit-btn">Walking</label>
+
+                        <input type="radio" id="drive" name="transit_mode" value="driving" hidden>
+                        <label for="drive" class="transit-btn">Driving</label>
+
+                        <input type="radio" id="bike" name="transit_mode" value="biking" hidden>
+                        <label for="bike" class="transit-btn">Biking</label>
+
+                        <input type="radio" id="public" name="transit_mode" value="transit" hidden>
+                        <label for="public" class="transit-btn">Public Transit</label>
+                    </div>
+                </div>
+            </div>
+
+
+            </div>
+        </div>
+
+
+        <!-- Submit Button -->
         <div class="button-container">
             <button class="submit-btn" type="submit">Submit</button>
         </div>
     </form>
-    
+
     <!-- Messages Display -->
     {% if messages %}
         <ul class="messages">
@@ -50,17 +127,19 @@
 
 {% block extra_js %}
 <script>
-    let stopCount = 0;
+    function toggleAdvancedOptions(checkbox) {
+        const section = document.getElementById('advanced-options');
+        section.style.display = checkbox.checked ? 'block' : 'none';
+    }
 
-    function addStop() {
-        if (stopCount < 3) {
-            stopCount += 1;
-            document.getElementById(`stop-${stopCount}`).style.display = 'block';
-        }
-        if (stopCount === 3) {
-            document.querySelector('.add-stop-btn').style.display = 'none'; // Hide add button after 3 stops
-        }
+    function toggleCollapse(header) {
+        const content = header.nextElementSibling;
+        const isOpen = content.style.display === 'block';
+        content.style.display = isOpen ? 'none' : 'block';
+        header.textContent = (isOpen ? '' : '▼ ') + header.textContent.slice(2);
     }
 </script>
 {% endblock %}
+
+
 {% endblock %}

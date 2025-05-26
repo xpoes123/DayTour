@@ -14,18 +14,52 @@ class PlanForm(forms.Form):
         required=False,
         widget=forms.NumberInput(attrs={'placeholder': 'Enter your radius in meters'})
     )
-    
     locations = forms.IntegerField(
         label='Locations',
         required=False,
         widget=forms.NumberInput(
             attrs={
-                'type': 'range',  # This creates a slider
-                'min': '1',       # Minimum value of the slider
-                'max': '9',      # Maximum value of the slider
-                'value': '5',     # Default value (you can adjust this)
-                'step': '1',      # Step size for the slider
-                'placeholder': 'Enter how many locations you want to visit',
+                'type': 'range',
+                'min': '1',
+                'max': '10',
+                'value': '5',
+                'step': '1',
+                'oninput': 'document.getElementById("locationValue").textContent = this.value'
             }
         )
+    )
+
+
+    # ✅ Advanced Options Below
+
+    start_time = forms.TimeField(
+        label='Start Time',
+        required=False,
+        widget=forms.TimeInput(attrs={'type': 'time'})
+    )
+
+    end_time = forms.TimeField(
+        label='End Time',
+        required=False,
+        widget=forms.TimeInput(attrs={'type': 'time'})
+    )
+
+    budget = forms.DecimalField(
+        label='Max Budget',
+        max_digits=6,
+        decimal_places=2,
+        required=False,
+        widget=forms.NumberInput(attrs={'placeholder': 'Enter max budget'})
+    )
+
+    transit_mode = forms.ChoiceField(
+        label='Transit Mode',
+        choices=[
+            ('walking', 'Walking'),
+            ('driving', 'Driving'),
+            ('biking', 'Biking'),
+            ('transit', 'Public Transit')
+        ],
+        required=False,
+        widget=forms.RadioSelect
     )

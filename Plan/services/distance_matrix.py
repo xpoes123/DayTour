@@ -23,8 +23,6 @@ def get_distance_matrix(locations):
         f'https://maps.googleapis.com/maps/api/distancematrix/json?origins={query_locations}&destinations={query_locations}&key={API_KEY}')
 
     distance_matrix = [[0] * len(locations) for _ in range(len(locations))] 
-    print("r.json: ")
-    print(r.json())
     i = 0
     for r in r.json()['rows']:
         j = 0

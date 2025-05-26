@@ -1,24 +1,37 @@
 import requests
 from django.conf import settings
+import random
 
 API_KEY = settings.G_API_KEY
 
-def getPlaces(textQuery = 'Wisconsin State Capitol', radius = 4000):
-    # Convert textQuery into lat/long using a "Text Search" request
+def getPlaces(textQuery='Wisconsin State Capitol', radius=4000):
+    # Step 1: Convert textQuery into lat/long using a "Text Search" request
     url1 = 'https://places.googleapis.com/v1/places:searchText'
-    headers1 = {'X-Goog-Api-Key': API_KEY,
-                'X-Goog-FieldMask': 'places.displayName,places.id,places.location'}
-    r1 = requests.post(url1, headers=headers1, data={'textQuery': textQuery}).json()['places'][0]
-    location = r1['location']
-    name = r1['displayName']['text']
-    id = r1['id']
-    latitude = location['latitude']
-    longitude = location['longitude']
+    headers1 = {
+        'X-Goog-Api-Key': API_KEY,
+        'X-Goog-FieldMask': 'places.displayName,places.id,places.location',
+        'Content-Type': 'application/json'
+    }
+    response1 = requests.post(url1, headers=headers1, json={'textQuery': textQuery})
+    
+    try:
+        place_info = response1.json()['places'][0]
+        location = place_info['location']
+        name = place_info['displayName']['text']
+        place_id = place_info['id']
+        latitude = location['latitude']
+        longitude = location['longitude']
+    except (KeyError, IndexError) as e:
+        print("Error in searchText response:", e)
+        return []
 
-    # Find a maximum of 20 tourist-attractions near the lat/long, return array of placeIDs
-    url = 'https://places.googleapis.com/v1/places:searchNearby'
-    headers = {'X-Goog-Api-Key': API_KEY,
-            'X-Goog-FieldMask': 'places.id,places.displayName'}
+    # Step 2: Search nearby tourist attractions
+    url2 = 'https://places.googleapis.com/v1/places:searchNearby'
+    headers2 = {
+        'X-Goog-Api-Key': API_KEY,
+        'X-Goog-FieldMask': '*',  # Temporarily use full response for debugging
+        'Content-Type': 'application/json'
+    }
     params = {
         'locationRestriction': {
             'circle': {
@@ -31,8 +44,24 @@ def getPlaces(textQuery = 'Wisconsin State Capitol', radius = 4000):
         },
         'includedTypes': ['tourist_attraction']
     }
-    r = requests.post(url, headers=headers, json=params)
-    placeIDs = [[id, name]]
-    for place in r.json()['places']:
-        placeIDs.append([place['id'],place['displayName']['text']])
-    return placeIDs
+    response2 = requests.post(url2, headers=headers2, json=params)
+
+    placeIDs = [[place_id, name]]
+
+    try:
+        for place in response2.json()['places']:
+            placeIDs.append([place['id'], place['displayName']['text']])
+    except KeyError:
+        print("No 'places' in searchNearby response.")
+
+    # Shuffle the list to introduce variation (excluding the starting point)
+    fixed_start = placeIDs[0]
+    rest = placeIDs[1:]
+
+    # Optional: Only keep up to max_locations total
+    max_locations = 10
+    if len(rest) > max_locations - 1:
+        rest = random.sample(rest, max_locations - 1)
+
+    return [fixed_start] + rest
+

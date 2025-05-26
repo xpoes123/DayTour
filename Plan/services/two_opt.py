@@ -4,23 +4,21 @@ import math
 from .distance_matrix import get_distance_matrix
 #from googleplaces import getPlaces
 
-# custom distance matrix for pairwise distances
 def generate_distance_matrix(points):
     n = len(points)
     distance_matrix = [[0] * n for _ in range(n)]
 
-    # generate distances roughly proportional to the Euclidean distance, with some noise
     for i in range(n):
         for j in range(i + 1, n):
             lat_diff = points[i].lat - points[j].lat
             long_diff = points[i].long - points[j].long
             euclidean_dist = math.sqrt(lat_diff ** 2 + long_diff ** 2)
 
-            # add some randomness to the distance to make it not exactly Euclidean
-            # noise_factor = random.uniform(0.8, 1.2)  # random scaling factor
-            distance_matrix[i][j] = distance_matrix[j][i] = euclidean_dist # * noise_factor
+
+            distance_matrix[i][j] = distance_matrix[j][i] = euclidean_dist
 
     return distance_matrix
+
 
 class Point:
     def __init__(self, lat=0.0, long=0.0):
@@ -107,7 +105,7 @@ def get_best_path(locations):
     optimized_locations = [locations[index] for index in optimized_path_indices]
     optimized_locations.append(locations[0])
 
-    return optimized_locations
+    return tuple(optimized_locations)
 
 # Main code
 # n = 20  # Increase the number of points for a larger matrix

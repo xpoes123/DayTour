@@ -19,14 +19,16 @@ import sys
 BASE_DIR = Path(__file__).resolve().parent.parent
 import os
 
-G_API_KEY = os.getenv("G_API_KEY")
+# G_API_KEY = os.getenv("G_API_KEY")
+G_API_KEY = "AIzaSyAk-fHRC_g7zb_JX1BJ7IM0H-fvZTM2wpw"
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default='postgres://u84l2u9o0rag4a:pf59b6bd9e8859688fc1fcb2e356a7470fdcbaf0b8ec60fd29e027f7e6956e05f@c5hilnj7pn10vb.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/dd16s3trjb93q3',
-        conn_max_age=600
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    }
 }
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
