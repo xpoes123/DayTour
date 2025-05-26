@@ -4,74 +4,89 @@ from .forms import PlanForm
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from .static.plan.js.place_list_to_map_url import path_to_url
-from .services.googleplaces import getPlaces
+from .services.googleplaces import getPlaces, get_place_photo
 from .services.two_opt import get_best_path
 from .models import Location, Itinerary
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
-
-
+from django.views.decorators.csrf import csrf_exempt
+import random
 import json
 
 def locations_list(request):
     search_query = request.GET.get('search', '')
-    
-    # Filter locations by search query and order by num_visits in descending order
     if search_query:
         locations = Location.objects.filter(name__icontains=search_query).order_by('-num_visits')
     else:
         locations = Location.objects.all().order_by('-num_visits')
-    
-    paginator = Paginator(locations, 10)  # Paginate with 10 locations per page
+
+    paginator = Paginator(locations, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
     return render(request, 'plan/locations_list.html', {
         'page_obj': page_obj,
         'search_query': search_query,
     })
 
-
 def plan(request):
     form = PlanForm()
     if request.method == "POST":
+        action = request.POST.get('action')
         form = PlanForm(request.POST)
         if form.is_valid():
             start_loc = form.cleaned_data['start_loc']
             radius = float(form.cleaned_data['radius'])
             locations = int(form.cleaned_data['locations'])
 
-            name_lookup = {}
+            if action == 'plan':
+                name_lookup = {}
+                seen = set()
+                unique_routes = []
 
-            seen = set()
-            unique_routes = []
+                for _ in range(10):
+                    place_array = getPlaces(start_loc, radius)
+                    selected_places = place_array[:locations]
+                    id_array = [place[0] for place in selected_places]
 
-            for _ in range(10):
-                place_array = getPlaces(start_loc, radius)
-                selected_places = place_array[:locations]
-                id_array = [place[0] for place in selected_places]
+                    for place_id, name in selected_places:
+                        name_lookup[place_id] = name
 
-                for place_id, name in selected_places:
-                    name_lookup[place_id] = name  # ensure no missing keys
+                    create_itinerary(request.user, selected_places)
+                    route = get_best_path(id_array)
+                    route_tuple = tuple(route)
+                    if route_tuple not in seen:
+                        seen.add(route_tuple)
+                        unique_routes.append(route)
+                    if len(unique_routes) == 5:
+                        break
 
-                create_itinerary(request.user, selected_places)
-                route = get_best_path(id_array)
-                route_tuple = tuple(route)
-                if route_tuple not in seen:
-                    seen.add(route_tuple)
-                    unique_routes.append(route)
-                if len(unique_routes) == 5:
-                    break
+                request.session['routes'] = unique_routes
+                request.session['name_lookup'] = name_lookup
 
-            request.session['routes'] = unique_routes
-            request.session['name_lookup'] = name_lookup
+                return redirect('plan:itinerary_page', page_num=1)
 
-            return redirect('plan:itinerary_page', page_num=1)
-        else:
-            messages.error(request, "Invalid form submission.")
-
+            elif action == "pick":
+                places = getPlaces(start_loc, radius)
+                start = places[0]
+                places = places[1:]
+                places_with_images = [
+                    {
+                        "id": place[0],
+                        "name": place[1],
+                        "image_url": get_place_photo(place[0]) or "/static/images/daytour.png"
+                    }
+                    for place in places
+                ]
+                print(start_loc, start)
+                return render(request, 'plan/pick.html', {
+                    'places': places_with_images,
+                    'start_loc': start_loc,
+                    'start_loc_google': start,
+                    'radius': radius,
+                    'original_count': locations
+                })
     return render(request, 'plan/start.html', {'form': form})
-
 
 def create_itinerary(user, place_array):
     location_names = []
@@ -85,7 +100,6 @@ def create_itinerary(user, place_array):
         location_names.append(place_name)
 
     return Itinerary.objects.create(user=user, locations=location_names)
-
 
 @login_required
 def itinerary_page(request, page_num):
@@ -116,3 +130,60 @@ def itinerary_page(request, page_num):
         'current_page': page_number,
         'total_pages': total_pages,
     })
+
+@csrf_exempt
+def confirm_pick(request):
+    if request.method == "POST":
+        start_loc = request.POST.get('start_loc')
+        radius = float(request.POST.get('radius'))
+        selected_ids = request.POST.getlist('selected_places')
+        original_count = int(request.POST.get('original_count', len(selected_ids)))
+
+        all_places = getPlaces(start_loc, radius)
+        name_lookup = {place[0]: place[1] for place in all_places}
+
+        selected_set = set(selected_ids)
+        selected_places = [(pid, name_lookup[pid]) for pid in selected_ids if pid in name_lookup]
+
+        # Fill in with more unique places if not enough were selected
+        if len(selected_places) < original_count:
+            for pid, name in all_places:
+                if pid not in selected_set:
+                    selected_places.append((pid, name))
+                    selected_set.add(pid)
+                if len(selected_places) >= original_count:
+                    break
+        cap = max(0, original_count - 1)
+        if len(selected_places) > cap:
+            random.shuffle(selected_places)
+            selected_places = selected_places[:cap]
+
+        # Then prepend the start location
+        start_loc_google = request.POST.get('start_loc_google', 'start')
+        selected_places.insert(0, tuple(start_loc_google))
+        # The issue is that this is a string of a list instead of alist, we need to convert it back
+        print(start_loc_google[0], start_loc_google[1])
+        # for i in selected_places:
+        #     print(i)
+        id_array = [pid for pid, _ in selected_places]
+        route = get_best_path(id_array)
+        name_lookup = {pid: name for pid, name in selected_places}
+
+        travel_plan = []
+        partial_routes = []
+        for i in range(len(route) - 1):
+            from_id = route[i]
+            to_id = route[i + 1]
+            travel_plan.append([name_lookup[from_id], name_lookup[to_id], 0, 0, 0])
+            partial_routes.append(path_to_url([from_id, to_id]))
+        path_map = path_to_url(route)
+
+        return render(request, 'plan/itinerary.html', {
+            'travel_plan': travel_plan,
+            'partial_routes': json.dumps(partial_routes),
+            'path_map': path_map,
+            'current_page': 1,
+            'total_pages': [1]
+        })
+
+    return redirect('plan:plan')

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+    <link rel="stylesheet" type="text/css" href="{% static 'plan/css/pick.css' %}">
+{% endblock %}
+
+{% block title %}Pick Your Places{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Select Locations to Visit</h1>
+
+    <form method="POST" action="{% url 'plan:confirm_pick' %}">
+        {% csrf_token %}
+
+        <!-- Hidden values to carry over state -->
+        <input type="hidden" name="start_loc" value="{{ start_loc }}">
+        <input type="hidden" name="start_loc_google" value="{{ start_loc_google }}">
+        <input type="hidden" name="radius" value="{{ radius }}">
+        <input type="hidden" name="original_count" value="{{ original_count }}">
+
+        <div class="place-grid">
+            {% for place in places %}
+                <div class="place-card-wrapper">
+                    <input type="checkbox" id="place-{{ forloop.counter }}" name="selected_places" value="{{ place.id }}" style="display: none;">
+                    <label class="place-card" for="place-{{ forloop.counter }}">
+                        <img class="place-img" src="{{ place.image_url }}" alt="{{ place.name }}">
+                        <div class="place-name">{{ place.name }}</div>
+                    </label>
+                </div>
+            {% endfor %}
+        </div>
+
+
+        <div class="button-container">
+            <button type="submit" class="submit-btn">Continue</button>
+        </div>
+    </form>
+</div>
+{% block extra_js %}
+<script>
+document.querySelectorAll('.place-card').forEach(card => {
+    card.addEventListener('click', () => {
+        const checkbox = document.getElementById(card.getAttribute('for'));
+        checkbox.checked = !checkbox.checked;
+        card.classList.toggle('selected', checkbox.checked);
+    });
+});
+</script>
+{% endblock %}
+
+{% endblock %}

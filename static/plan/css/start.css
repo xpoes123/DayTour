@@ -278,3 +278,18 @@ input:checked + .slider::before {
     background-color: #007BFF;
     color: white;
 }
+
+.dual-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.plan-btn, .pick-btn {
+    background-color: #007BFF;
+}
+
+.plan-btn:hover, .pick-btn:hover {
+    background-color: #0056b3;
+}

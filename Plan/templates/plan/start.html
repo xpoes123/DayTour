@@ -27,8 +27,8 @@
 
         <div class="form-group">
             <label for="id_locations">Locations:</label>
-            <input type="range" id="id_locations" name="locations" min="1" max="10" step="1" value="5" oninput="document.getElementById('locationValue').textContent = this.value">
-            <span id="locationValue">5</span>
+            <input type="range" id="id_locations" name="locations" min="1" max="6" step="1" value="3" oninput="document.getElementById('locationValue').textContent = this.value">
+            <span id="locationValue">3</span>
         </div>
 
         <!-- Advanced Options Toggle -->
@@ -110,9 +110,11 @@
 
 
         <!-- Submit Button -->
-        <div class="button-container">
-            <button class="submit-btn" type="submit">Submit</button>
+        <div class="button-container dual-buttons">
+            <button class="submit-btn plan-btn" type="submit" name="action" value="plan">Plan</button>
+            <button class="submit-btn pick-btn" type="submit" name="action" value="pick">Pick</button>
         </div>
+
     </form>
 
     <!-- Messages Display -->

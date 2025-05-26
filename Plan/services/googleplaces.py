@@ -59,9 +59,33 @@ def getPlaces(textQuery='Wisconsin State Capitol', radius=4000):
     rest = placeIDs[1:]
 
     # Optional: Only keep up to max_locations total
-    max_locations = 10
+    max_locations = 11
     if len(rest) > max_locations - 1:
         rest = random.sample(rest, max_locations - 1)
 
     return [fixed_start] + rest
 
+
+def get_place_photo(place_id, maxwidth=400):
+    """
+    Given a place_id, return the photo URL from Google Places Details API.
+    """
+    details_url = f"https://maps.googleapis.com/maps/api/place/details/json"
+    params = {
+        "place_id": place_id,
+        "fields": "photo",
+        "key": API_KEY
+    }
+
+    response = requests.get(details_url, params=params)
+    result = response.json().get("result", {})
+    photos = result.get("photos", [])
+
+    if not photos:
+        return None  # or a fallback image
+
+    photo_reference = photos[0]['photo_reference']
+    return (
+        f"https://maps.googleapis.com/maps/api/place/photo?"
+        f"maxwidth={maxwidth}&photo_reference={photo_reference}&key={API_KEY}"
+    )
