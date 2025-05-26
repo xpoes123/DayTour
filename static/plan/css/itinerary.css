@@ -18,7 +18,7 @@
 
 /* Map Section */
 .map-section {
-    flex: 3; /* Increased from 2 to 3 to take more horizontal space */
+    flex: 3;
     display: flex;
     justify-content: center;
 }
@@ -27,7 +27,6 @@
     width: 600px;
     height: 500px;
 }
-
 
 /* Itinerary Section */
 .itinerary-section {
@@ -96,31 +95,7 @@
     font-weight: bold;
 }
 
-/* Optional: Shrink button text size */
-.edit-btn, .option-btn {
-    font-size: 0.85em;
-}
-
-/* Optional: Pager buttons if you add pagination */
-.page-links {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.page-links a {
-    padding: 8px 12px;
-    background-color: #007BFF;
-    color: white;
-    border-radius: 4px;
-    text-decoration: none;
-}
-
-.page-links a:hover {
-    background-color: #0056b3;
-}
-
+/* Pagination */
 .pagination {
     display: flex;
     justify-content: center;
@@ -154,3 +129,89 @@
     box-shadow: 0 0 0 2px #0056b3 inset;
 }
 
+/* Restaurant Preview Container */
+.restaurant-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+/* Restaurant Card */
+.place-card-wrapper {
+    flex: 1 1 calc(33.33% - 10px);
+    max-width: calc(33.33% - 10px);
+}
+
+.place-card {
+    height: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    overflow: hidden;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease;
+    padding: 4px;
+}
+
+.place-card:hover {
+    transform: scale(1.02);
+}
+
+/* Restaurant Image */
+.place-img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    background-color: #ddd;
+    border-radius: 4px;
+}
+
+/* Restaurant Name */
+.place-name {
+    font-size: 0.6rem;
+    font-weight: bold;
+    color: #333;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2em;
+    max-height: 2.8em;
+    padding: 2px 4px;  /* optional for spacing inside */
+    margin: 0;         /* avoid margin issues */
+}
+
+
+/* Restaurant Meta (Rating + Price) */
+.place-meta {
+    font-size: 0.75rem;
+    color: #666;
+    line-height: 1.2;
+    padding-bottom: 4px;
+}
+
+/* Utility */
+.hidden {
+    display: none;
+}
+
+.star-rating {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    font-size: 0.8rem;
+    margin-top: 2px;
+}
+
+.star {
+    color: #ccc;
+}
+
+.star.filled {
+    color: #f5c518; /* gold */
+}

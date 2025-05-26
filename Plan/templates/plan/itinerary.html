@@ -2,24 +2,23 @@
 {% load static %}
 
 {% block extra_head %}
-    <link rel="stylesheet" type="text/css" href="{% static 'plan/css/itinerary.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'plan/css/itinerary.css' %}">
 {% endblock %}
 
 {% block title %}Plan Your Day{% endblock %}
 
 {% block content %}
 <div class="container">
-    <!-- Messages Display -->
     {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-                <li class="{{ message.tags }}">{{ message }}</li>
-            {% endfor %}
-        </ul>
+    <ul class="messages">
+        {% for message in messages %}
+        <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
     {% endif %}
 
     <div class="itinerary-container">
-        <!-- Left side: Map -->
+        <!-- Map Section -->
         <div class="map-section">
             <iframe
                 id="map"
@@ -33,29 +32,55 @@
             </iframe>
         </div>
 
-        <!-- Right side: Itinerary Details -->
+        <!-- Itinerary Section -->
         <div class="itinerary-section">
             <h2>Itinerary {{ current_page }}</h2>
             <hr>
-            <p class="subheader">Start: {{ travel_plan.0.0 }}</p>
+            <p class="subheader">Start: {{ travel_plan.0.origin_name }}</p>
+
             <ul class="itinerary-list" id="legs">
                 {% for step in travel_plan %}
-                    <li class="itinerary-item" onclick="toggleDetails(this)">
-                        <div class="basic-info">
-                            <span class="location">{{ step.1 }}</span><br>
+                <li class="itinerary-item" onclick="toggleDetails(this)" data-index="{{ forloop.counter0 }}">
+                    <div class="basic-info">
+                        <span class="location">{{ step.destination_name }}</span>
+                    </div>
+
+                    <!-- Hidden by default -->
+                    <div class="restaurant-preview hidden">
+                        {% for r in step.restaurants %}
+                        <div class="place-card-wrapper">
+                            <div class="place-card">
+                                <img class="place-img" src="{{ r.image_url }}" alt="{{ r.name }}">
+                                <div class="place-name">{{ r.name }}</div>
+                                <div class="place-meta">
+                                    <small>{{ r.address|default:"No address" }}</small><br>
+                                    <div class="star-rating">
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= r.rating|default:0 %}
+                                                <span class="star filled">&#9733;</span>
+                                            {% else %}
+                                                <span class="star">&#9734;</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <small>{% for _ in "x"|slice:":r.price_level" %}$ {% endfor %}</small>
+                                </div>
+                            </div>
                         </div>
-                    </li>
+                        {% endfor %}
+                    </div>
+                </li>
                 {% endfor %}
             </ul>
 
-            <!-- Pagination Links -->
+            <!-- Pagination -->
             <div class="pagination">
                 {% for page in total_pages %}
-                    {% if page == current_page %}
-                        <span class="page-number selected">{{ page }}</span>
-                    {% else %}
-                        <a class="page-number" href="{% url 'plan:itinerary_page' page %}">{{ page }}</a>
-                    {% endif %}
+                {% if page == current_page %}
+                <span class="page-number selected">{{ page }}</span>
+                {% else %}
+                <a class="page-number" href="{% url 'plan:itinerary_page' page %}">{{ page }}</a>
+                {% endif %}
                 {% endfor %}
             </div>
         </div>
@@ -65,18 +90,28 @@
 
 {% block extra_js %}
 <script>
-    const listItems = document.querySelectorAll('#legs li');
+    const listItems = document.querySelectorAll('.itinerary-item');
+    const partialRoutes = JSON.parse('{{ partial_routes|safe }}');
+
     function toggleDetails(item) {
         const selectedItem = document.querySelector('.itinerary-item.selected');
         if (selectedItem && selectedItem !== item) {
             selectedItem.classList.remove('selected');
+            const prevPreview = selectedItem.querySelector('.restaurant-preview');
+            if (prevPreview) prevPreview.classList.add('hidden');
         }
+
         item.classList.toggle('selected');
+        const index = item.dataset.index;
+
+        const preview = item.querySelector('.restaurant-preview');
+
         if (item.classList.contains('selected')) {
-            partialRoutes = JSON.parse('{{ partial_routes|safe }}');
-            document.getElementById('map').src = partialRoutes[Array.from(listItems).indexOf(item)];
+            document.getElementById('map').src = partialRoutes[index];
+            if (preview) preview.classList.remove('hidden');
         } else {
             document.getElementById('map').src = '{{ path_map|safe }}';
+            if (preview) preview.classList.add('hidden');
         }
     }
 </script>

@@ -96,7 +96,6 @@ def path_to_url(placeIDs, mode='walking'):
     output = 'https://www.google.com/maps/embed/v1/directions'
     if mode is None:
         mode = 'walking'
-    print(mode)
     output += '?'+parse.urlencode({'key': API_KEY, 'origin': 'place_id:'+placeIDs[0], 'destination': 'place_id:'+placeIDs[-1], 'mode': mode})
     if len(placeIDs) > 2:
         output += '&waypoints='
@@ -105,3 +104,76 @@ def path_to_url(placeIDs, mode='walking'):
             if i < len(placeIDs)-2:
                 output += '%7C'
     return output
+
+def get_restaurants(place_id):
+    # Step 1: Convert place_id to lat/lng
+    details_url = "https://maps.googleapis.com/maps/api/place/details/json"
+    details_params = {
+        "place_id": place_id,
+        "fields": "geometry",
+        "key": API_KEY
+    }
+
+    details_response = requests.get(details_url, params=details_params)
+    details_data = details_response.json()
+
+    if details_data.get("status") != "OK":
+        return []
+
+    location = details_data["result"]["geometry"]["location"]
+    lat, lng = location["lat"], location["lng"]
+
+    # Step 2: Find nearby restaurants
+    nearby_url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+    nearby_params = {
+        "location": f"{lat},{lng}",
+        "radius": 1000,
+        "type": "restaurant",
+        "key": API_KEY
+    }
+
+    nearby_response = requests.get(nearby_url, params=nearby_params)
+    nearby_data = nearby_response.json()
+
+    if nearby_data.get("status") != "OK":
+        return []
+
+    results = nearby_data.get("results", [])[:3]
+
+    # Return top 3 restaurants as a list of dicts
+    return [
+        {
+            "name": r["name"],
+            "address": r.get("vicinity"),
+            "place_id": r["place_id"],
+            "rating": r.get("rating"),
+            "price_level": r.get("price_level"),
+        }
+        for r in results
+    ]
+
+def get_unique_restaurants(place_id, seen_ids, max_count=3):
+    """Get up to `max_count` unique restaurants near a place, avoiding duplicates."""
+    raw = get_restaurants(place_id)
+    unique = []
+    for r in raw:
+        rid = r["place_id"]
+        if rid not in seen_ids:
+            seen_ids.add(rid)
+            unique.append({
+                "name": r["name"],
+                "address": r.get("address"),
+                "place_id": rid,
+                "rating": r.get("rating"),
+                "price_level": r.get("price_level"),
+                "image_url": get_place_photo(rid) or "/static/images/daytour.png"
+            })
+        if len(unique) == max_count:
+            break
+    return unique
+
+def trim_address(full_address):
+    if ',' in full_address:
+        return full_address.split(',')[0]
+    return full_address
+

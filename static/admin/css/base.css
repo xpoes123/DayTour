@@ -56,17 +56,8 @@ html[data-theme="light"],
     --object-tools-bg: var(--close-button-bg);
     --object-tools-hover-bg: var(--close-button-hover-bg);
 
-    --font-family-primary:
-        "Segoe UI",
-        system-ui,
-        Roboto,
-        "Helvetica Neue",
-        Arial,
-        sans-serif,
-        "Apple Color Emoji",
-        "Segoe UI Emoji",
-        "Segoe UI Symbol",
-        "Noto Color Emoji";
+    --font-family-primary: Calibri, sans-serif;
+
     --font-family-monospace:
         ui-monospace,
         Menlo,
@@ -142,9 +133,9 @@ p {
     line-height: 140%;
 }
 
-h1,h2,h3,h4,h5 {
+/* h1,h2,h3,h4,h5 {
     font-weight: bold;
-}
+} */
 
 h1 {
     margin: 0 0 20px;
@@ -166,7 +157,7 @@ h3 {
     font-size: 0.875rem;
     margin: .8em 0 .3em 0;
     color: var(--body-medium-color);
-    font-weight: bold;
+    /* font-weight: bold; */
 }
 
 h4 {
@@ -199,7 +190,7 @@ li, dt, dd {
 }
 
 dt {
-    font-weight: bold;
+    /* font-weight: bold; */
     margin-top: 4px;
 }
 
@@ -340,9 +331,9 @@ tfoot td {
     border-top: 1px solid var(--hairline-color);
 }
 
-thead th.required {
+/* thead th.required {
     font-weight: bold;
-}
+} */
 
 tr.alt {
     background: var(--darkened-bg);
@@ -769,7 +760,7 @@ a.deletelink:focus, a.deletelink:hover {
 
 .object-tools {
     font-size: 0.625rem;
-    font-weight: bold;
+    /* font-weight: bold; */
     padding-left: 0;
     float: right;
     position: relative;
@@ -1147,7 +1138,7 @@ a.deletelink:focus, a.deletelink:hover {
 
 .paginator .this-page {
     padding: 2px 6px;
-    font-weight: bold;
+    /* font-weight: bold; */
     font-size: 0.8125rem;
     vertical-align: top;
 }
