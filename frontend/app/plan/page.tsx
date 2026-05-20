@@ -62,7 +62,11 @@ export default function PlanPage() {
 
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink/80">
-            Radius: <span className="tabular-nums">{radiusM.toLocaleString()}</span> m
+            Radius:{" "}
+            <span className="tabular-nums">{radiusM.toLocaleString()} m</span>
+            <span className="ml-1 text-ink/50">
+              · <span className="tabular-nums">{(radiusM / 1609.344).toFixed(2)} mi</span>
+            </span>
           </span>
           <input
             type="range"
