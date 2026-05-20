@@ -45,3 +45,6 @@ class ItineraryOut(BaseModel):
     created_at: datetime
     stops: list[StopOut]
     total_travel_minutes: int = 0
+    # [[lat, lon], ...] road-following polyline from OSRM, or null when the
+    # transit mode isn't road-routable (e.g. transit) or OSRM failed.
+    route_geometry: list[list[float]] | None = None

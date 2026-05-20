@@ -29,7 +29,13 @@ function FitBounds({ points }: { points: [number, number][] }) {
   return null;
 }
 
-export default function ItineraryMapInner({ stops }: { stops: Stop[] }) {
+export default function ItineraryMapInner({
+  stops,
+  routeGeometry,
+}: {
+  stops: Stop[];
+  routeGeometry: [number, number][] | null;
+}) {
   const points = useMemo<[number, number][]>(
     () =>
       stops
@@ -37,6 +43,9 @@ export default function ItineraryMapInner({ stops }: { stops: Stop[] }) {
         .map((s) => [s.latitude!, s.longitude!]),
     [stops],
   );
+  // Prefer the OSRM road-following polyline if we have it; otherwise fall back
+  // to a straight-line connector between stops so something draws.
+  const linePoints = routeGeometry && routeGeometry.length > 1 ? routeGeometry : points;
 
   if (points.length === 0) {
     return (
@@ -57,7 +66,7 @@ export default function ItineraryMapInner({ stops }: { stops: Stop[] }) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <Polyline positions={points} pathOptions={{ color: "#5DADE2", weight: 4 }} />
+      <Polyline positions={linePoints} pathOptions={{ color: "#5DADE2", weight: 4 }} />
       {stops.map((s, i) =>
         s.latitude != null && s.longitude != null ? (
           <Marker key={`${s.place_id}-${i}`} position={[s.latitude, s.longitude]} icon={numberedIcon(i + 1)}>

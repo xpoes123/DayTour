@@ -12,6 +12,12 @@ const Inner = dynamic(() => import("./itinerary-map-inner"), {
   ),
 });
 
-export function ItineraryMap({ stops }: { stops: Stop[] }) {
-  return <Inner stops={stops} />;
+export function ItineraryMap({
+  stops,
+  routeGeometry,
+}: {
+  stops: Stop[];
+  routeGeometry: [number, number][] | null;
+}) {
+  return <Inner stops={stops} routeGeometry={routeGeometry} />;
 }

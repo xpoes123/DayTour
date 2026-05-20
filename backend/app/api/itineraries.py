@@ -22,7 +22,7 @@ from app.schemas.itinerary import (
     PlanRequest,
     StopOut,
 )
-from app.services import llm, places, routing
+from app.services import llm, osrm, places, routing
 
 router = APIRouter(prefix="/itineraries", tags=["itineraries"])
 
@@ -47,29 +47,50 @@ async def _upsert_place(db: AsyncSession, data: dict) -> Place:
     return p
 
 
-def _to_out(itinerary: Itinerary, stops_with_places: list[tuple[Stop, Place]]) -> ItineraryOut:
+async def _to_out(
+    itinerary: Itinerary, stops_with_places: list[tuple[Stop, Place]]
+) -> ItineraryOut:
     ordered = sorted(stops_with_places, key=lambda sp: sp[0].position)
     mode = itinerary.transit_mode
 
+    coords: list[tuple[float, float]] = [
+        (p.latitude, p.longitude)
+        for _, p in ordered
+        if p.latitude is not None and p.longitude is not None
+    ]
+
+    osrm_result = await osrm.route(coords, mode) if len(coords) >= 2 else None
+    osrm_legs = osrm_result["legs"] if osrm_result else None
+    geometry = osrm_result["geometry"] if osrm_result else None
+
     out_stops: list[StopOut] = []
     total = 0
+    leg_idx = 0  # index into osrm_legs (one fewer than stops)
     prev_pt: routing.GeoPoint | None = None
     for stop_row, place in ordered:
         leg_minutes: int | None = None
-        if (
-            prev_pt is not None
-            and place.latitude is not None
-            and place.longitude is not None
-        ):
-            here = routing.GeoPoint(
-                place_id=place.google_place_id, lat=place.latitude, lon=place.longitude
-            )
-            leg_minutes = routing.estimate_leg_minutes(prev_pt, here, mode)
+        has_coords = place.latitude is not None and place.longitude is not None
+
+        if prev_pt is not None and has_coords:
+            if osrm_legs is not None and leg_idx < len(osrm_legs):
+                leg_minutes = max(1, round(osrm_legs[leg_idx]["duration_sec"] / 60))
+                leg_idx += 1
+            else:
+                here = routing.GeoPoint(
+                    place_id=place.google_place_id,
+                    lat=place.latitude,
+                    lon=place.longitude,
+                )
+                leg_minutes = routing.estimate_leg_minutes(prev_pt, here, mode)
             total += leg_minutes
-        if place.latitude is not None and place.longitude is not None:
+
+        if has_coords:
             prev_pt = routing.GeoPoint(
-                place_id=place.google_place_id, lat=place.latitude, lon=place.longitude
+                place_id=place.google_place_id,
+                lat=place.latitude,
+                lon=place.longitude,
             )
+
         out_stops.append(
             StopOut(
                 position=stop_row.position,
@@ -93,6 +114,7 @@ def _to_out(itinerary: Itinerary, stops_with_places: list[tuple[Stop, Place]]) -
         created_at=itinerary.created_at,
         stops=out_stops,
         total_travel_minutes=total,
+        route_geometry=geometry,
     )
 
 
@@ -138,7 +160,7 @@ async def create_itinerary(
         stops_with_places.append((stop, place_row))
 
     await db.commit()
-    return _to_out(itinerary, stops_with_places)
+    return await _to_out(itinerary, stops_with_places)
 
 
 @router.post("/from-prompt", response_model=ItineraryOut, status_code=201)
@@ -172,7 +194,7 @@ async def get_itinerary(
         await db.execute(select(Place).where(Place.id.in_([s.place_id for s in stops])))
     ).scalars().all()
     by_id = {p.id: p for p in place_rows}
-    return _to_out(itin, [(s, by_id[s.place_id]) for s in stops])
+    return await _to_out(itin, [(s, by_id[s.place_id]) for s in stops])
 
 
 @router.post("/{itinerary_id}/pick", response_model=ItineraryOut)

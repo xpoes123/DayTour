@@ -78,7 +78,7 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
             </li>
           ))}
         </ol>
-        <ItineraryMap stops={data.stops} />
+        <ItineraryMap stops={data.stops} routeGeometry={data.route_geometry} />
       </div>
     </main>
   );

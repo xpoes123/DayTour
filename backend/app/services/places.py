@@ -93,6 +93,51 @@ async def search_text(text_query: str) -> dict[str, Any] | None:
     return await _cached_or_call("searchText", {"q": text_query}, fetch)
 
 
+async def autocomplete(query: str, limit: int = 6) -> list[dict[str, str]]:
+    """Suggest place predictions for a partial query.
+
+    Returns a list of {place_id, label} where label is the primary text
+    (e.g. "Wisconsin State Capitol") with secondary text (city / state)
+    appended in parens when present.
+    """
+    payload = {"q": query, "n": limit}
+
+    async def fetch():
+        url = "https://places.googleapis.com/v1/places:autocomplete"
+        headers = {
+            "X-Goog-Api-Key": _settings.google_places_api_key,
+            "Content-Type": "application/json",
+        }
+        body = {"input": query, "includeQueryPredictions": False}
+        async with httpx.AsyncClient(timeout=8) as client:
+            resp = await client.post(url, headers=headers, json=body)
+            resp.raise_for_status()
+            data = resp.json()
+        out: list[dict[str, str]] = []
+        for s in data.get("suggestions", [])[:limit]:
+            p = s.get("placePrediction")
+            if not p:
+                continue
+            primary = p.get("structuredFormat", {}).get("mainText", {}).get("text") or p.get(
+                "text", {}
+            ).get("text", "")
+            secondary = p.get("structuredFormat", {}).get("secondaryText", {}).get("text", "")
+            label = f"{primary} ({secondary})" if secondary else primary
+            out.append({"place_id": p["placeId"], "label": label, "primary": primary})
+        return out
+
+    # Autocomplete is volatile per-keystroke — keep cache short.
+    r = _redis()
+    key = _cache_key("autocomplete", payload)
+    cached = await r.get(key)
+    if cached:
+        return json.loads(cached)
+    await _check_and_increment_budget()
+    result = await fetch()
+    await r.set(key, json.dumps(result), ex=60 * 60)  # 1h
+    return result
+
+
 async def nearby_attractions(
     lat: float, lon: float, radius_m: int, max_results: int = 10
 ) -> list[dict[str, Any]]:

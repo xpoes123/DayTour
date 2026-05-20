@@ -106,6 +106,7 @@ export type Itinerary = {
   created_at: string;
   stops: Stop[];
   total_travel_minutes: number;
+  route_geometry: [number, number][] | null;
 };
 
 export function formatMinutes(mins: number): string {
