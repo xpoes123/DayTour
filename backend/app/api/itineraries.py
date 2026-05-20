@@ -153,7 +153,18 @@ async def create_itinerary(
     db.add(itinerary)
     await db.flush()
 
-    candidates = [start, *nearby]
+    # Deduplicate by place_id — Google Places' searchNearby occasionally
+    # returns the start location itself among nearby results, which produces
+    # a stop visited twice and breaks downstream routing (Google Routes
+    # rejects legs where origin == destination).
+    seen_ids: set[str] = set()
+    candidates: list[dict] = []
+    for c in [start, *nearby]:
+        if c["place_id"] in seen_ids:
+            continue
+        seen_ids.add(c["place_id"])
+        candidates.append(c)
+
     geo_points = [
         routing.GeoPoint(place_id=c["place_id"], lat=c["lat"], lon=c["lon"]) for c in candidates
     ]

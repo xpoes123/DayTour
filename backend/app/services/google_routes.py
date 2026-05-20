@@ -139,7 +139,11 @@ async def route(
                     return None
                 routes = resp.get("routes") or []
                 if not routes:
-                    return None
+                    # Routes API can return 200 with empty routes when there's
+                    # no transit option (e.g. very close stops). Treat as a
+                    # zero-cost leg and keep the rest of the trip.
+                    legs.append({"duration_sec": 0, "distance_m": 0})
+                    continue
                 ro = routes[0]
                 dur = _seconds_from_duration(ro.get("duration", "0s"))
                 dist = int(ro.get("distanceMeters", 0))
