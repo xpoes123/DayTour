@@ -12,6 +12,7 @@ import {
   type TravelStep,
 } from "@/lib/api";
 import { ItineraryMap } from "@/components/itinerary-map";
+import { TripActions } from "@/components/trip-actions";
 
 const MODE_VERB: Record<Itinerary["transit_mode"], string> = {
   walking: "walk",
@@ -317,6 +318,7 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
             radius, dropping stops, or switching transit mode.
           </div>
         )}
+        <TripActions itinerary={data} />
       </header>
 
       <div className="grid gap-6 md:grid-cols-[1fr_2fr]">

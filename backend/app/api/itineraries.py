@@ -236,6 +236,29 @@ async def create_from_prompt(
     return await create_itinerary(parsed, db, user)
 
 
+@router.get("/by-share/{token}", response_model=ItineraryOut)
+async def get_by_share(
+    token: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Public read-only fetch by share_token — no auth needed."""
+    itin = (
+        await db.execute(select(Itinerary).where(Itinerary.share_token == token))
+    ).scalar_one_or_none()
+    if not itin:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    stops = (
+        await db.execute(select(Stop).where(Stop.itinerary_id == itin.id))
+    ).scalars().all()
+    place_rows = (
+        await db.execute(select(Place).where(Place.id.in_([s.place_id for s in stops])))
+    ).scalars().all()
+    by_id = {p.id: p for p in place_rows}
+    return await _to_out(
+        itin, [(s, by_id[s.place_id]) for s in stops], db=db, generate_summary=True
+    )
+
+
 @router.get("/{itinerary_id}", response_model=ItineraryOut)
 async def get_itinerary(
     itinerary_id: int,
