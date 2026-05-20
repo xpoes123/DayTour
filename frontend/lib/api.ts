@@ -91,6 +91,13 @@ export const auth = {
   },
 };
 
+export type TravelStep = {
+  mode: "walk" | "bus" | "subway" | "rail";
+  duration_sec: number;
+  distance_m: number;
+  label: string | null;
+};
+
 export type Stop = {
   position: number;
   place_id: string;
@@ -100,6 +107,7 @@ export type Stop = {
   photo_url: string | null;
   rating: number | null;
   travel_minutes_from_prev: number | null;
+  travel_steps_from_prev: TravelStep[];
 };
 
 export type Itinerary = {

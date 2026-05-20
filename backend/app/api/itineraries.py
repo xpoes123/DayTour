@@ -21,6 +21,7 @@ from app.schemas.itinerary import (
     PickRequest,
     PlanRequest,
     StopOut,
+    TravelStep,
 )
 from app.services import google_routes, llm, osrm, places, routing
 
@@ -79,11 +80,14 @@ async def _to_out(
     prev_pt: routing.GeoPoint | None = None
     for stop_row, place in ordered:
         leg_minutes: int | None = None
+        steps: list[TravelStep] = []
         has_coords = place.latitude is not None and place.longitude is not None
 
         if prev_pt is not None and has_coords:
             if route_legs is not None and leg_idx < len(route_legs):
-                leg_minutes = max(1, round(route_legs[leg_idx]["duration_sec"] / 60))
+                leg = route_legs[leg_idx]
+                leg_minutes = max(1, round(leg["duration_sec"] / 60))
+                steps = [TravelStep(**s) for s in leg.get("steps", [])]
                 leg_idx += 1
             else:
                 here = routing.GeoPoint(
@@ -111,6 +115,7 @@ async def _to_out(
                 photo_url=place.photo_url,
                 rating=place.rating,
                 travel_minutes_from_prev=leg_minutes,
+                travel_steps_from_prev=steps,
             )
         )
 

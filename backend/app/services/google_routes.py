@@ -27,8 +27,48 @@ _API_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
 _FIELD_MASK = (
     "routes.duration,routes.distanceMeters,"
     "routes.polyline.geoJsonLinestring,"
-    "routes.legs.duration,routes.legs.distanceMeters"
+    "routes.legs.duration,routes.legs.distanceMeters,"
+    "routes.legs.steps.travelMode,"
+    "routes.legs.steps.staticDuration,"
+    "routes.legs.steps.distanceMeters,"
+    "routes.legs.steps.transitDetails.transitLine.nameShort,"
+    "routes.legs.steps.transitDetails.transitLine.name,"
+    "routes.legs.steps.transitDetails.transitLine.vehicle.type"
 )
+
+
+def _parse_steps(leg_obj: dict[str, Any]) -> list[dict[str, Any]]:
+    """Flatten a Google Routes leg into [{mode, duration_sec, distance_m, label?}].
+
+    mode is normalized to one of: 'walk', 'bus', 'subway', 'rail'.
+    label, when present, is the line short-name (e.g. 'L', 'M14').
+    """
+    out: list[dict[str, Any]] = []
+    for step in leg_obj.get("steps", []) or []:
+        tm = step.get("travelMode")
+        dur = _seconds_from_duration(step.get("staticDuration", "0s"))
+        dist = int(step.get("distanceMeters", 0))
+        if tm == "WALK":
+            mode = "walk"
+            label: str | None = None
+        elif tm == "TRANSIT":
+            td = (step.get("transitDetails") or {}).get("transitLine") or {}
+            vtype = ((td.get("vehicle") or {}).get("type") or "").upper()
+            if vtype in {"BUS", "TROLLEYBUS", "INTERCITY_BUS", "SHARE_TAXI"}:
+                mode = "bus"
+            elif vtype in {"SUBWAY", "METRO_RAIL", "MONORAIL", "HEAVY_RAIL"}:
+                mode = "subway"
+            elif vtype in {"RAIL", "COMMUTER_TRAIN", "HIGH_SPEED_TRAIN", "LONG_DISTANCE_TRAIN"}:
+                mode = "rail"
+            elif vtype in {"TRAM", "LIGHT_RAIL", "CABLE_CAR", "FUNICULAR", "GONDOLA_LIFT"}:
+                mode = "rail"
+            else:
+                mode = "subway"
+            label = td.get("nameShort") or td.get("name") or None
+        else:
+            continue
+        out.append({"mode": mode, "duration_sec": dur, "distance_m": dist, "label": label})
+    return out
 _CACHE_TTL = 60 * 60 * 6  # 6h — transit schedules drift
 
 
@@ -147,7 +187,15 @@ async def route(
                 ro = routes[0]
                 dur = _seconds_from_duration(ro.get("duration", "0s"))
                 dist = int(ro.get("distanceMeters", 0))
-                legs.append({"duration_sec": dur, "distance_m": dist})
+                # In a one-leg request the whole route is the leg.
+                first_leg = (ro.get("legs") or [{}])[0]
+                legs.append(
+                    {
+                        "duration_sec": dur,
+                        "distance_m": dist,
+                        "steps": _parse_steps(first_leg),
+                    }
+                )
                 total_duration += dur
                 total_distance += dist
                 ls = ro.get("polyline", {}).get("geoJsonLinestring", {})
@@ -185,6 +233,7 @@ async def route(
                     {
                         "duration_sec": _seconds_from_duration(leg.get("duration", "0s")),
                         "distance_m": int(leg.get("distanceMeters", 0)),
+                        "steps": _parse_steps(leg),
                     }
                 )
             ls = ro.get("polyline", {}).get("geoJsonLinestring", {})

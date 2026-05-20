@@ -100,7 +100,13 @@ async def route(
     for leg in route_obj.get("legs", []):
         dist_m = int(leg["distance"])
         legs.append(
-            {"duration_sec": int(round(dist_m / mps)) if mps > 0 else 0, "distance_m": dist_m}
+            {
+                "duration_sec": int(round(dist_m / mps)) if mps > 0 else 0,
+                "distance_m": dist_m,
+                # OSRM doesn't give us step granularity for our purposes;
+                # the whole leg is one mode of the requested transit_mode.
+                "steps": [],
+            }
         )
     geometry = [[lat, lon] for lon, lat in route_obj["geometry"]["coordinates"]]
     total_distance = int(route_obj["distance"])

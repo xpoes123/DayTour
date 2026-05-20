@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+
+
 TransitMode = Literal["walking", "driving", "bicycling", "transit"]
 
 
@@ -21,6 +23,17 @@ class PickRequest(BaseModel):
     selected_place_ids: list[str] = Field(min_length=2, max_length=11)
 
 
+TravelStepMode = Literal["walk", "bus", "subway", "rail"]
+
+
+class TravelStep(BaseModel):
+    mode: TravelStepMode
+    duration_sec: int
+    distance_m: int
+    # e.g. "L", "M14" — the transit line short-name, when present
+    label: str | None = None
+
+
 class StopOut(BaseModel):
     position: int
     place_id: str
@@ -29,10 +42,11 @@ class StopOut(BaseModel):
     longitude: float | None
     photo_url: str | None
     rating: float | None
-    # Estimated minutes to travel from the previous stop to this one
-    # (null for the first stop). Rough — based on straight-line distance
-    # with a 1.3x detour factor and mode-specific avg speeds.
+    # Minutes to travel from the previous stop to this one (null for first).
     travel_minutes_from_prev: int | None = None
+    # For transit legs: the step breakdown (walk → ride → walk). For other
+    # modes this is an empty list; the whole leg is the chosen transit mode.
+    travel_steps_from_prev: list[TravelStep] = []
 
 
 class ItineraryOut(BaseModel):
