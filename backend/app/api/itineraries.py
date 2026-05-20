@@ -22,7 +22,7 @@ from app.schemas.itinerary import (
     PlanRequest,
     StopOut,
 )
-from app.services import llm, osrm, places, routing
+from app.services import google_routes, llm, osrm, places, routing
 
 router = APIRouter(prefix="/itineraries", tags=["itineraries"])
 
@@ -59,21 +59,31 @@ async def _to_out(
         if p.latitude is not None and p.longitude is not None
     ]
 
-    osrm_result = await osrm.route(coords, mode) if len(coords) >= 2 else None
-    osrm_legs = osrm_result["legs"] if osrm_result else None
-    geometry = osrm_result["geometry"] if osrm_result else None
+    # Pick the right routing backend. Transit needs Google (real bus/rail
+    # schedules); OSRM has no transit data. Walking / cycling / driving go
+    # through OSRM, falling back to Google if OSRM fails for any reason.
+    routing_result: dict | None = None
+    if len(coords) >= 2:
+        if mode == "transit":
+            routing_result = await google_routes.route(coords, mode)
+        else:
+            routing_result = await osrm.route(coords, mode)
+        if routing_result is None:
+            routing_result = await google_routes.route(coords, mode)
+    route_legs = routing_result["legs"] if routing_result else None
+    geometry = routing_result["geometry"] if routing_result else None
 
     out_stops: list[StopOut] = []
     total = 0
-    leg_idx = 0  # index into osrm_legs (one fewer than stops)
+    leg_idx = 0  # index into route_legs (one fewer than stops)
     prev_pt: routing.GeoPoint | None = None
     for stop_row, place in ordered:
         leg_minutes: int | None = None
         has_coords = place.latitude is not None and place.longitude is not None
 
         if prev_pt is not None and has_coords:
-            if osrm_legs is not None and leg_idx < len(osrm_legs):
-                leg_minutes = max(1, round(osrm_legs[leg_idx]["duration_sec"] / 60))
+            if route_legs is not None and leg_idx < len(route_legs):
+                leg_minutes = max(1, round(route_legs[leg_idx]["duration_sec"] / 60))
                 leg_idx += 1
             else:
                 here = routing.GeoPoint(
