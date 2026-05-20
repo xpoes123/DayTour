@@ -48,26 +48,51 @@ async def _upsert_place(db: AsyncSession, data: dict) -> Place:
 
 
 def _to_out(itinerary: Itinerary, stops_with_places: list[tuple[Stop, Place]]) -> ItineraryOut:
+    ordered = sorted(stops_with_places, key=lambda sp: sp[0].position)
+    mode = itinerary.transit_mode
+
+    out_stops: list[StopOut] = []
+    total = 0
+    prev_pt: routing.GeoPoint | None = None
+    for stop_row, place in ordered:
+        leg_minutes: int | None = None
+        if (
+            prev_pt is not None
+            and place.latitude is not None
+            and place.longitude is not None
+        ):
+            here = routing.GeoPoint(
+                place_id=place.google_place_id, lat=place.latitude, lon=place.longitude
+            )
+            leg_minutes = routing.estimate_leg_minutes(prev_pt, here, mode)
+            total += leg_minutes
+        if place.latitude is not None and place.longitude is not None:
+            prev_pt = routing.GeoPoint(
+                place_id=place.google_place_id, lat=place.latitude, lon=place.longitude
+            )
+        out_stops.append(
+            StopOut(
+                position=stop_row.position,
+                place_id=place.google_place_id,
+                name=place.name,
+                latitude=place.latitude,
+                longitude=place.longitude,
+                photo_url=place.photo_url,
+                rating=place.rating,
+                travel_minutes_from_prev=leg_minutes,
+            )
+        )
+
     return ItineraryOut(
         id=itinerary.id,
         title=itinerary.title,
         start_loc=itinerary.start_loc,
         radius_m=itinerary.radius_m,
-        transit_mode=itinerary.transit_mode,  # type: ignore[arg-type]
+        transit_mode=mode,  # type: ignore[arg-type]
         share_token=itinerary.share_token,
         created_at=itinerary.created_at,
-        stops=[
-            StopOut(
-                position=s.position,
-                place_id=p.google_place_id,
-                name=p.name,
-                latitude=p.latitude,
-                longitude=p.longitude,
-                photo_url=p.photo_url,
-                rating=p.rating,
-            )
-            for s, p in sorted(stops_with_places, key=lambda sp: sp[0].position)
-        ],
+        stops=out_stops,
+        total_travel_minutes=total,
     )
 
 

@@ -93,6 +93,7 @@ export type Stop = {
   longitude: number | null;
   photo_url: string | null;
   rating: number | null;
+  travel_minutes_from_prev: number | null;
 };
 
 export type Itinerary = {
@@ -104,4 +105,12 @@ export type Itinerary = {
   share_token: string | null;
   created_at: string;
   stops: Stop[];
+  total_travel_minutes: number;
 };
+
+export function formatMinutes(mins: number): string {
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m === 0 ? `${h} hr` : `${h} hr ${m} min`;
+}

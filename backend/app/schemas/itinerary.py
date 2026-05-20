@@ -29,6 +29,10 @@ class StopOut(BaseModel):
     longitude: float | None
     photo_url: str | None
     rating: float | None
+    # Estimated minutes to travel from the previous stop to this one
+    # (null for the first stop). Rough — based on straight-line distance
+    # with a 1.3x detour factor and mode-specific avg speeds.
+    travel_minutes_from_prev: int | None = None
 
 
 class ItineraryOut(BaseModel):
@@ -40,3 +44,4 @@ class ItineraryOut(BaseModel):
     share_token: str | None
     created_at: datetime
     stops: list[StopOut]
+    total_travel_minutes: int = 0

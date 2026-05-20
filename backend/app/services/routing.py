@@ -18,6 +18,30 @@ class GeoPoint:
     lon: float
 
 
+# Crude city-detour factor: actual streets are ~30% longer than straight-line.
+_DETOUR = 1.3
+
+# Avg speeds in km/h. Picked low end of typical urban speeds so the estimate
+# errs on "this looks long" rather than "this looks easy."
+_SPEED_KMH: dict[str, float] = {
+    "walking": 4.5,
+    "bicycling": 14.0,
+    "transit": 22.0,
+    "driving": 32.0,
+}
+
+
+def estimate_leg_minutes(a: GeoPoint, b: GeoPoint, transit_mode: str) -> int:
+    """Rough trip-time estimate between two points for a given transit mode.
+
+    Uses haversine * detour factor / mode speed. Good enough to flag unreasonable
+    plans; replace with Google Distance Matrix or OSRM if accuracy matters.
+    """
+    km = haversine_km(a, b) * _DETOUR
+    kmh = _SPEED_KMH.get(transit_mode, _SPEED_KMH["walking"])
+    return max(1, round(km / kmh * 60))
+
+
 def haversine_km(a: GeoPoint, b: GeoPoint) -> float:
     r = 6371.0
     lat1, lat2 = radians(a.lat), radians(b.lat)
