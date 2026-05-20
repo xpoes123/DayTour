@@ -16,8 +16,8 @@ with sync_playwright() as p:
     remove_buttons = page.get_by_role("button", name="Remove stop").all()
     if len(remove_buttons) >= 3:
         remove_buttons[2].click()
-        # Wait for alternatives to fetch + render.
-        page.wait_for_timeout(1800)
+        # Wait for alternatives + photo bytes to fully load.
+        page.wait_for_timeout(4500)
     page.screenshot(path="/tmp/daytour-curation.png", full_page=True)
     browser.close()
 
