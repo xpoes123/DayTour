@@ -74,3 +74,6 @@ class ItineraryOut(BaseModel):
     # [[lat, lon], ...] road-following polyline from OSRM, or null when the
     # transit mode isn't road-routable (e.g. transit) or OSRM failed.
     route_geometry: list[list[float]] | None = None
+    # Claude-written preview paragraph; null while still generating or if
+    # the model failed.
+    summary: str | None = None

@@ -303,6 +303,14 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
             </>
           )}
         </p>
+        {data.summary && (
+          <div className="mt-4 rounded-lg border border-accent/30 bg-accent/[0.08] px-4 py-3 text-[15px] leading-relaxed text-ink/90">
+            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-accent-dark">
+              Your day, in brief
+            </div>
+            {data.summary}
+          </div>
+        )}
         {tooLong && (
           <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
             Heads up — that&apos;s a lot of {verb}ing for one day. Consider shrinking the

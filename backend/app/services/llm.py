@@ -44,20 +44,29 @@ async def prompt_to_plan(prompt: str) -> dict[str, Any]:
     return json.loads(text)
 
 
-async def summarize_itinerary(stop_names: list[str], start_loc: str) -> str:
+async def summarize_itinerary(
+    stop_names: list[str], start_loc: str, transit_mode: str
+) -> str:
     msg = await _client().messages.create(
         model="claude-sonnet-4-6",
         max_tokens=400,
-        system="You write short, vivid one-paragraph summaries of day trips.",
+        system=(
+            "You write short, vivid one-paragraph previews of day trips. "
+            "Address the reader directly ('you'll'). Be specific about what makes "
+            "each place feel like part of the same day. Avoid generic tourist-brochure "
+            "phrasing. Skip greetings, headings, or lists — just the paragraph. "
+            "Aim for 3-5 sentences, ~60-90 words."
+        ),
         messages=[
             {
                 "role": "user",
                 "content": (
-                    f"Day trip starting at {start_loc}, visiting in order: "
-                    + ", ".join(stop_names)
-                    + ". Write one engaging paragraph."
+                    f"Trip starts at: {start_loc}\n"
+                    f"Travel mode: {transit_mode}\n"
+                    f"Stops in order: {', '.join(stop_names)}\n"
+                    f"Write the preview paragraph."
                 ),
             }
         ],
     )
-    return "".join(b.text for b in msg.content if b.type == "text")
+    return "".join(b.text for b in msg.content if b.type == "text").strip()

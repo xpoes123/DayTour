@@ -18,6 +18,7 @@ class Itinerary(Base):
     radius_m: Mapped[int] = mapped_column(Integer)
     transit_mode: Mapped[str] = mapped_column(String(16), default="walking")
     share_token: Mapped[str | None] = mapped_column(String(32), unique=True, nullable=True)
+    summary: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     stops: Mapped[list["Stop"]] = relationship(

@@ -138,6 +138,7 @@ export type Itinerary = {
   stops: Stop[];
   total_travel_minutes: number;
   route_geometry: [number, number][] | null;
+  summary: string | null;
 };
 
 export function formatMinutes(mins: number): string {

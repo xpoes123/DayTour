@@ -5,8 +5,11 @@ Itinerary is linked to that user; otherwise it's anonymous (user_id=NULL) and
 addressable by id / share_token.
 """
 
+import logging
 import secrets
 from typing import Annotated
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -61,7 +64,10 @@ async def _upsert_place(db: AsyncSession, data: dict) -> Place:
 
 
 async def _to_out(
-    itinerary: Itinerary, stops_with_places: list[tuple[Stop, Place]]
+    itinerary: Itinerary,
+    stops_with_places: list[tuple[Stop, Place]],
+    db: AsyncSession | None = None,
+    generate_summary: bool = False,
 ) -> ItineraryOut:
     ordered = sorted(stops_with_places, key=lambda sp: sp[0].position)
     mode = itinerary.transit_mode
@@ -131,6 +137,20 @@ async def _to_out(
             )
         )
 
+    # Lazy summary: generate on first GET, persist back. Skip on POST so
+    # planning latency stays snappy; the user will see "Generating preview…"
+    # for a beat on the result page, then it pops in on refresh.
+    if generate_summary and db is not None and not itinerary.summary:
+        try:
+            text = await llm.summarize_itinerary(
+                [p.name for _, p in ordered], itinerary.start_loc, mode
+            )
+            if text:
+                itinerary.summary = text
+                await db.commit()
+        except Exception as e:
+            logger.warning("summary generation failed for itinerary %s: %s", itinerary.id, e)
+
     return ItineraryOut(
         id=itinerary.id,
         title=itinerary.title,
@@ -142,6 +162,7 @@ async def _to_out(
         stops=out_stops,
         total_travel_minutes=total,
         route_geometry=geometry,
+        summary=itinerary.summary,
     )
 
 
@@ -232,7 +253,9 @@ async def get_itinerary(
         await db.execute(select(Place).where(Place.id.in_([s.place_id for s in stops])))
     ).scalars().all()
     by_id = {p.id: p for p in place_rows}
-    return await _to_out(itin, [(s, by_id[s.place_id]) for s in stops])
+    return await _to_out(
+        itin, [(s, by_id[s.place_id]) for s in stops], db=db, generate_summary=True
+    )
 
 
 @router.get("/{itinerary_id}/alternatives", response_model=list[AlternativeOut])
