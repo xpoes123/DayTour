@@ -73,7 +73,7 @@ async def search_text(text_query: str) -> dict[str, Any] | None:
         url = "https://places.googleapis.com/v1/places:searchText"
         headers = {
             "X-Goog-Api-Key": _settings.google_places_api_key,
-            "X-Goog-FieldMask": "places.displayName,places.id,places.location",
+            "X-Goog-FieldMask": "places.displayName,places.id,places.location,places.photos,places.rating",
             "Content-Type": "application/json",
         }
         async with httpx.AsyncClient(timeout=10) as client:
@@ -83,11 +83,14 @@ async def search_text(text_query: str) -> dict[str, Any] | None:
         if not data.get("places"):
             return None
         p = data["places"][0]
+        photos = p.get("photos") or []
         return {
             "place_id": p["id"],
             "name": p["displayName"]["text"],
             "lat": p["location"]["latitude"],
             "lon": p["location"]["longitude"],
+            "rating": p.get("rating"),
+            "photo_name": photos[0]["name"] if photos else None,
         }
 
     return await _cached_or_call("searchText", {"q": text_query}, fetch)
@@ -165,12 +168,14 @@ async def nearby_attractions(
             data = resp.json()
         out = []
         for p in data.get("places", []):
+            photos = p.get("photos") or []
             out.append({
                 "place_id": p["id"],
                 "name": p["displayName"]["text"],
                 "lat": p["location"]["latitude"],
                 "lon": p["location"]["longitude"],
                 "rating": p.get("rating"),
+                "photo_name": photos[0]["name"] if photos else None,
             })
         return out
 

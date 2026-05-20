@@ -29,12 +29,19 @@ from app.services import google_routes, llm, osrm, places, routing
 router = APIRouter(prefix="/itineraries", tags=["itineraries"])
 
 
+def _photo_url(place: Place) -> str | None:
+    """Turn a stored photo-resource-name into the proxy URL the frontend hits."""
+    return f"/api/places/{place.google_place_id}/photo" if place.photo_url else None
+
+
 async def _upsert_place(db: AsyncSession, data: dict) -> Place:
     existing = (
         await db.execute(select(Place).where(Place.google_place_id == data["place_id"]))
     ).scalar_one_or_none()
     if existing:
         existing.num_visits += 1
+        if not existing.photo_url and data.get("photo_name"):
+            existing.photo_url = data["photo_name"]
         return existing
     p = Place(
         google_place_id=data["place_id"],
@@ -42,6 +49,10 @@ async def _upsert_place(db: AsyncSession, data: dict) -> Place:
         latitude=data.get("lat"),
         longitude=data.get("lon"),
         rating=data.get("rating"),
+        # photo_url stores the Google photo resource name (e.g.
+        # 'places/CHIJ.../photos/Ab43m-...'); the frontend hits our
+        # /places/{place_id}/photo proxy to materialize it as bytes.
+        photo_url=data.get("photo_name"),
         num_visits=1,
     )
     db.add(p)
@@ -113,7 +124,7 @@ async def _to_out(
                 name=place.name,
                 latitude=place.latitude,
                 longitude=place.longitude,
-                photo_url=place.photo_url,
+                photo_url=_photo_url(place),
                 rating=place.rating,
                 travel_minutes_from_prev=leg_minutes,
                 travel_steps_from_prev=steps,
@@ -268,7 +279,7 @@ async def alternatives(
                 name=place.name,
                 latitude=place.latitude,
                 longitude=place.longitude,
-                photo_url=place.photo_url,
+                photo_url=_photo_url(place),
                 rating=place.rating,
             )
         )

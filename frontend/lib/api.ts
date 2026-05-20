@@ -1,6 +1,14 @@
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000/api";
 const TOKEN_KEY = "daytour_token";
 
+/** Turn a backend-relative photo URL ('/api/places/X/photo') into a fully-qualified one. */
+export function photoSrc(photoUrl: string | null | undefined): string | null {
+  if (!photoUrl) return null;
+  if (photoUrl.startsWith("http")) return photoUrl;
+  const origin = BASE.replace(/\/api\/?$/, "");
+  return origin + photoUrl;
+}
+
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return window.localStorage.getItem(TOKEN_KEY);

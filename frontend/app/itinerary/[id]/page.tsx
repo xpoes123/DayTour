@@ -5,6 +5,7 @@ import { use, useMemo, useState } from "react";
 import {
   api,
   formatMinutes,
+  photoSrc,
   type Alternative,
   type Itinerary,
   type Stop,
@@ -124,40 +125,53 @@ function StopCard({
   onRestore: () => void;
 }) {
   const rejected = change !== undefined;
+  const img = !rejected ? photoSrc(stop.photo_url) : null;
   return (
     <div
-      className={`relative rounded-lg border p-3 shadow-sm transition-colors ${
-        rejected
-          ? "border-ink/10 bg-ink/[0.03]"
-          : "border-ink/10 bg-white"
+      className={`relative overflow-hidden rounded-lg border shadow-sm transition-colors ${
+        rejected ? "border-ink/10 bg-ink/[0.03]" : "border-ink/10 bg-white"
       }`}
     >
-      <button
-        type="button"
-        onClick={rejected ? onRestore : onRemove}
-        aria-label={rejected ? "Restore stop" : "Remove stop"}
-        className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-sm font-semibold transition ${
-          rejected
-            ? "bg-ink/10 text-ink/60 hover:bg-ink/20"
-            : "bg-ink/5 text-ink/40 hover:bg-red-100 hover:text-red-700"
-        }`}
-        title={rejected ? "Restore" : "Remove"}
-      >
-        {rejected ? "↺" : "×"}
-      </button>
-      <div className="text-xs text-ink/50">Stop {stop.position + 1}</div>
-      <div className={`font-medium ${rejected ? "line-through text-ink/60" : ""}`}>
-        {stop.name}
-      </div>
-      {stop.rating != null && (
-        <div className="text-sm text-ink/60">★ {stop.rating.toFixed(1)}</div>
+      {img && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={img}
+          alt=""
+          loading="lazy"
+          className="h-32 w-full object-cover"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+        />
       )}
-      {change?.kind === "swap" && (
-        <div className="mt-2 rounded-md border border-accent/40 bg-accent/10 px-2 py-1.5 text-sm">
-          <div className="text-xs uppercase tracking-wide text-accent-dark">Swapping in</div>
-          <div className="font-medium text-ink">{change.with.name}</div>
+      <div className="relative p-3">
+        <button
+          type="button"
+          onClick={rejected ? onRestore : onRemove}
+          aria-label={rejected ? "Restore stop" : "Remove stop"}
+          className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-sm font-semibold transition ${
+            rejected
+              ? "bg-ink/10 text-ink/60 hover:bg-ink/20"
+              : "bg-ink/5 text-ink/40 hover:bg-red-100 hover:text-red-700"
+          }`}
+          title={rejected ? "Restore" : "Remove"}
+        >
+          {rejected ? "↺" : "×"}
+        </button>
+        <div className="text-xs text-ink/50">Stop {stop.position + 1}</div>
+        <div className={`font-medium ${rejected ? "line-through text-ink/60" : ""}`}>
+          {stop.name}
         </div>
-      )}
+        {stop.rating != null && (
+          <div className="text-sm text-ink/60">★ {stop.rating.toFixed(1)}</div>
+        )}
+        {change?.kind === "swap" && (
+          <div className="mt-2 rounded-md border border-accent/40 bg-accent/10 px-2 py-1.5 text-sm">
+            <div className="text-xs uppercase tracking-wide text-accent-dark">Swapping in</div>
+            <div className="font-medium text-ink">{change.with.name}</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
