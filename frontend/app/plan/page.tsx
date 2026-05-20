@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, type Itinerary } from "@/lib/api";
@@ -13,10 +14,12 @@ export default function PlanPage() {
     "walking" | "driving" | "bicycling" | "transit"
   >("walking");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
+    setError(null);
     try {
       const itin = await api.post<Itinerary>("/itineraries", {
         start_loc: startLoc,
@@ -25,6 +28,8 @@ export default function PlanPage() {
         transit_mode: transitMode,
       });
       router.push(`/itinerary/${itin.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setSubmitting(false);
     }
@@ -32,20 +37,32 @@ export default function PlanPage() {
 
   return (
     <main className="mx-auto max-w-xl px-6 py-12">
-      <h1 className="font-display text-3xl">Plan a day</h1>
-      <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">Starting location</span>
+      <header className="mb-8 flex items-center gap-4">
+        <Image src="/daytour.png" alt="" width={56} height={56} />
+        <div>
+          <h1 className="font-display text-3xl tracking-tight">Plan a day</h1>
+          <p className="text-sm text-ink/60">
+            Pick a starting point and we&apos;ll string together stops.
+          </p>
+        </div>
+      </header>
+
+      <form onSubmit={onSubmit} className="flex flex-col gap-5">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink/80">Starting location</span>
           <input
             value={startLoc}
             onChange={(e) => setStartLoc(e.target.value)}
             placeholder="Wisconsin State Capitol"
-            className="rounded border px-3 py-2"
+            className="field"
             required
           />
         </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">Radius (meters): {radiusM}</span>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink/80">
+            Radius: <span className="tabular-nums">{radiusM.toLocaleString()}</span> m
+          </span>
           <input
             type="range"
             min={500}
@@ -53,24 +70,30 @@ export default function PlanPage() {
             step={500}
             value={radiusM}
             onChange={(e) => setRadiusM(Number(e.target.value))}
+            className="accent-accent"
           />
         </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">Stops: {stopCount}</span>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink/80">
+            Stops: <span className="tabular-nums">{stopCount}</span>
+          </span>
           <input
             type="range"
             min={2}
             max={10}
             value={stopCount}
             onChange={(e) => setStopCount(Number(e.target.value))}
+            className="accent-accent"
           />
         </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">Transit</span>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink/80">Transit</span>
           <select
             value={transitMode}
             onChange={(e) => setTransitMode(e.target.value as typeof transitMode)}
-            className="rounded border px-3 py-2"
+            className="field"
           >
             <option value="walking">Walking</option>
             <option value="driving">Driving</option>
@@ -78,12 +101,19 @@ export default function PlanPage() {
             <option value="transit">Transit</option>
           </select>
         </label>
+
+        {error && (
+          <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">
+            {error}
+          </div>
+        )}
+
         <button
           type="submit"
           disabled={submitting}
-          className="rounded bg-ink px-4 py-2 text-paper disabled:opacity-50"
+          className="rounded-md bg-accent px-4 py-2.5 font-medium text-white shadow-sm hover:bg-accent-dark disabled:opacity-50"
         >
-          {submitting ? "Planning..." : "Build my day"}
+          {submitting ? "Planning…" : "Build my day"}
         </button>
       </form>
     </main>

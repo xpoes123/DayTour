@@ -5,6 +5,7 @@ import { Providers } from "./providers";
 export const metadata: Metadata = {
   title: "DayTour",
   description: "Plan a multi-stop day trip in seconds.",
+  icons: { icon: "/daytour.png" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
