@@ -1,16 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { api, getToken, type Itinerary } from "@/lib/api";
+import { api, type Itinerary } from "@/lib/api";
 
 export default function PlanPage() {
   const router = useRouter();
-
-  useEffect(() => {
-    if (!getToken()) router.replace("/auth?next=/plan");
-  }, [router]);
 
   const [startLoc, setStartLoc] = useState("");
   const [radiusM, setRadiusM] = useState(4000);

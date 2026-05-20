@@ -1,7 +1,8 @@
 """Itinerary endpoints.
 
-Phase 1 surface; the prompt→plan and pick/route flows are stubbed at the
-boundary so we can iterate without touching the API contract.
+Guest mode: auth is optional. If a valid Bearer token is sent, the resulting
+Itinerary is linked to that user; otherwise it's anonymous (user_id=NULL) and
+addressable by id / share_token.
 """
 
 import secrets
@@ -11,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import current_user
+from app.core.deps import optional_current_user
 from app.db.session import get_db
 from app.models import Itinerary, Place, Stop, User
 from app.schemas.itinerary import (
@@ -73,8 +74,8 @@ def _to_out(itinerary: Itinerary, stops_with_places: list[tuple[Stop, Place]]) -
 @router.post("", response_model=ItineraryOut, status_code=201)
 async def create_itinerary(
     body: PlanRequest,
-    user: Annotated[User, Depends(current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User | None, Depends(optional_current_user)] = None,
 ):
     start = await places.search_text(body.start_loc)
     if not start:
@@ -86,7 +87,7 @@ async def create_itinerary(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No attractions found near that location")
 
     itinerary = Itinerary(
-        user_id=user.id,
+        user_id=user.id if user else None,
         start_loc=body.start_loc,
         radius_m=body.radius_m,
         transit_mode=body.transit_mode,
@@ -118,29 +119,24 @@ async def create_itinerary(
 @router.post("/from-prompt", response_model=ItineraryOut, status_code=201)
 async def create_from_prompt(
     body: FromPromptRequest,
-    user: Annotated[User, Depends(current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User | None, Depends(optional_current_user)] = None,
 ):
     try:
         plan = await llm.prompt_to_plan(body.prompt)
         parsed = PlanRequest(**plan)
     except Exception as e:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"Could not parse prompt: {e}")
-    return await create_itinerary(parsed, user, db)
+    return await create_itinerary(parsed, db, user)
 
 
 @router.get("/{itinerary_id}", response_model=ItineraryOut)
 async def get_itinerary(
     itinerary_id: int,
-    user: Annotated[User, Depends(current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     itin = (
-        await db.execute(
-            select(Itinerary).where(
-                Itinerary.id == itinerary_id, Itinerary.user_id == user.id
-            )
-        )
+        await db.execute(select(Itinerary).where(Itinerary.id == itinerary_id))
     ).scalar_one_or_none()
     if not itin:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -158,7 +154,6 @@ async def get_itinerary(
 async def pick(
     itinerary_id: int,
     body: PickRequest,
-    user: Annotated[User, Depends(current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     # TODO: replace existing stops with the user's selection, re-run routing

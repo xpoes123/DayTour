@@ -10,7 +10,9 @@ class Itinerary(Base):
     __tablename__ = "itineraries"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=True
+    )
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     start_loc: Mapped[str] = mapped_column(String(255))
     radius_m: Mapped[int] = mapped_column(Integer)
