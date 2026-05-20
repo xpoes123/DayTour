@@ -16,6 +16,7 @@ from app.core.deps import optional_current_user
 from app.db.session import get_db
 from app.models import Itinerary, Place, Stop, User
 from app.schemas.itinerary import (
+    AlternativeOut,
     FromPromptRequest,
     ItineraryOut,
     PlanRequest,
@@ -223,16 +224,17 @@ async def get_itinerary(
     return await _to_out(itin, [(s, by_id[s.place_id]) for s in stops])
 
 
-@router.post("/{itinerary_id}/recompute", response_model=ItineraryOut)
-async def recompute(
+@router.get("/{itinerary_id}/alternatives", response_model=list[AlternativeOut])
+async def alternatives(
     itinerary_id: int,
-    body: RecomputeRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
+    limit: int = 8,
 ):
-    """Drop the stops the user rejected, then re-route on the kept subset.
+    """Suggest other tourist attractions in the itinerary's radius for swaps.
 
-    The kept set must be a subset of the itinerary's existing stops (we don't
-    let users add arbitrary new places here — that's a re-plan).
+    Re-runs Google Places nearby search anchored at the original start_loc,
+    excludes already-used place_ids, persists each candidate to the places
+    table so the user can pick them in /recompute.
     """
     itin = (
         await db.execute(select(Itinerary).where(Itinerary.id == itinerary_id))
@@ -240,24 +242,74 @@ async def recompute(
     if not itin:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
+    start = await places.search_text(itin.start_loc)
+    if not start:
+        return []
+    nearby = await places.nearby_attractions(
+        start["lat"], start["lon"], itin.radius_m, max_results=max(limit + 6, 12)
+    )
+
     existing_stops = (
         await db.execute(select(Stop).where(Stop.itinerary_id == itin.id))
     ).scalars().all()
     place_rows = (
         await db.execute(select(Place).where(Place.id.in_([s.place_id for s in existing_stops])))
     ).scalars().all()
-    place_by_pk = {p.id: p for p in place_rows}
-    existing_by_google = {place_by_pk[s.place_id].google_place_id: s for s in existing_stops}
+    existing_google_ids = {p.google_place_id for p in place_rows} | {start["place_id"]}
 
-    kept = [pid for pid in body.kept_place_ids if pid in existing_by_google]
+    out: list[AlternativeOut] = []
+    for c in nearby:
+        if c["place_id"] in existing_google_ids:
+            continue
+        place = await _upsert_place(db, c)
+        out.append(
+            AlternativeOut(
+                place_id=place.google_place_id,
+                name=place.name,
+                latitude=place.latitude,
+                longitude=place.longitude,
+                photo_url=place.photo_url,
+                rating=place.rating,
+            )
+        )
+        if len(out) >= limit:
+            break
+
+    await db.commit()
+    return out
+
+
+@router.post("/{itinerary_id}/recompute", response_model=ItineraryOut)
+async def recompute(
+    itinerary_id: int,
+    body: RecomputeRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Rebuild the itinerary's stops as the given place_ids, re-route.
+
+    The kept_place_ids can be the original stops minus rejections, plus any
+    alternative place_ids the user picked. All must exist in the places
+    table (the /alternatives endpoint persists them on the way out).
+    """
+    itin = (
+        await db.execute(select(Itinerary).where(Itinerary.id == itinerary_id))
+    ).scalar_one_or_none()
+    if not itin:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+    # Resolve every requested place_id against the places table.
+    found_rows = (
+        await db.execute(select(Place).where(Place.google_place_id.in_(body.kept_place_ids)))
+    ).scalars().all()
+    place_by_google = {p.google_place_id: p for p in found_rows}
+    kept = [pid for pid in body.kept_place_ids if pid in place_by_google]
     if len(kept) < 2:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            "Keep at least 2 of the existing stops to recompute a route.",
+            "Keep at least 2 known places — call /alternatives first for new ones.",
         )
 
-    # Re-order the kept set via 2-opt anchored on the first kept stop.
-    kept_places = [place_by_pk[existing_by_google[pid].place_id] for pid in kept]
+    kept_places = [place_by_google[pid] for pid in kept]
     geo_points = [
         routing.GeoPoint(place_id=p.google_place_id, lat=p.latitude, lon=p.longitude)
         for p in kept_places
@@ -272,11 +324,13 @@ async def recompute(
     ordered_unique = ordered_ids[:-1] if ordered_ids[0] == ordered_ids[-1] else ordered_ids
 
     # Replace the itinerary's stop set with the kept-and-reordered subset.
+    existing_stops = (
+        await db.execute(select(Stop).where(Stop.itinerary_id == itin.id))
+    ).scalars().all()
     for s in existing_stops:
         await db.delete(s)
     await db.flush()
 
-    place_by_google = {p.google_place_id: p for p in kept_places}
     new_stops_with_places: list[tuple[Stop, Place]] = []
     for pos, pid in enumerate(ordered_unique):
         p = place_by_google[pid]

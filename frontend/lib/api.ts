@@ -63,6 +63,15 @@ export type PlaceSuggestion = {
   primary: string;
 };
 
+export type Alternative = {
+  place_id: string;
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+  photo_url: string | null;
+  rating: number | null;
+};
+
 export const auth = {
   async register(body: { username: string; email: string; password: string }) {
     await request("/auth/register", { method: "POST", body: JSON.stringify(body) });

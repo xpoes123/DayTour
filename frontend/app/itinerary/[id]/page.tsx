@@ -1,10 +1,11 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { use, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { use, useMemo, useState } from "react";
 import {
   api,
   formatMinutes,
+  type Alternative,
   type Itinerary,
   type Stop,
   type TravelStep,
@@ -47,26 +48,93 @@ function StepChip({ step }: { step: TravelStep }) {
   );
 }
 
+type Change =
+  | { kind: "remove" }
+  | { kind: "swap"; with: Alternative };
+
+function AlternativesPicker({
+  alternatives,
+  selected,
+  usedElsewhere,
+  onPick,
+  onClear,
+}: {
+  alternatives: Alternative[];
+  selected: Alternative | null;
+  usedElsewhere: Set<string>;
+  onPick: (alt: Alternative) => void;
+  onClear: () => void;
+}) {
+  if (alternatives.length === 0) {
+    return (
+      <div className="mt-2 rounded-md border border-dashed border-ink/15 bg-ink/[0.02] p-2 text-xs text-ink/50">
+        No more places within this radius.
+      </div>
+    );
+  }
+  return (
+    <div className="mt-2 flex flex-col gap-1">
+      <div className="text-xs font-medium uppercase tracking-wide text-ink/50">
+        {selected ? "Replacing with" : "Replace with"}
+      </div>
+      <ul className="flex flex-col gap-1">
+        {alternatives.map((a) => {
+          const isSelected = selected?.place_id === a.place_id;
+          const isTaken = !isSelected && usedElsewhere.has(a.place_id);
+          return (
+            <li key={a.place_id}>
+              <button
+                type="button"
+                disabled={isTaken}
+                onClick={() => (isSelected ? onClear() : onPick(a))}
+                className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left text-sm transition ${
+                  isSelected
+                    ? "border-accent bg-accent/10"
+                    : isTaken
+                    ? "cursor-not-allowed border-ink/10 bg-ink/[0.03] text-ink/40"
+                    : "border-ink/10 bg-white hover:border-accent/50 hover:bg-accent/5"
+                }`}
+              >
+                <span aria-hidden className="text-xs">
+                  {isSelected ? "✓" : "+"}
+                </span>
+                <span className="flex-1 truncate">{a.name}</span>
+                {a.rating != null && (
+                  <span className="text-xs text-ink/50">★ {a.rating.toFixed(1)}</span>
+                )}
+                {isTaken && <span className="text-xs text-ink/40">used</span>}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 function StopCard({
   stop,
-  rejected,
-  onToggle,
+  change,
+  onRemove,
+  onRestore,
 }: {
   stop: Stop;
-  rejected: boolean;
-  onToggle: () => void;
+  change: Change | undefined;
+  onRemove: () => void;
+  onRestore: () => void;
 }) {
+  const rejected = change !== undefined;
   return (
     <div
-      className={`relative rounded-lg border p-3 shadow-sm transition-opacity ${
+      className={`relative rounded-lg border p-3 shadow-sm transition-colors ${
         rejected
-          ? "border-ink/10 bg-ink/[0.03] opacity-60"
+          ? "border-ink/10 bg-ink/[0.03]"
           : "border-ink/10 bg-white"
       }`}
     >
       <button
         type="button"
-        onClick={onToggle}
+        onClick={rejected ? onRestore : onRemove}
         aria-label={rejected ? "Restore stop" : "Remove stop"}
         className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-sm font-semibold transition ${
           rejected
@@ -78,9 +146,17 @@ function StopCard({
         {rejected ? "↺" : "×"}
       </button>
       <div className="text-xs text-ink/50">Stop {stop.position + 1}</div>
-      <div className={`font-medium ${rejected ? "line-through" : ""}`}>{stop.name}</div>
+      <div className={`font-medium ${rejected ? "line-through text-ink/60" : ""}`}>
+        {stop.name}
+      </div>
       {stop.rating != null && (
         <div className="text-sm text-ink/60">★ {stop.rating.toFixed(1)}</div>
+      )}
+      {change?.kind === "swap" && (
+        <div className="mt-2 rounded-md border border-accent/40 bg-accent/10 px-2 py-1.5 text-sm">
+          <div className="text-xs uppercase tracking-wide text-accent-dark">Swapping in</div>
+          <div className="font-medium text-ink">{change.with.name}</div>
+        </div>
       )}
     </div>
   );
@@ -89,35 +165,109 @@ function StopCard({
 export default function ItineraryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const qc = useQueryClient();
+
   const { data, isLoading, error } = useQuery<Itinerary>({
     queryKey: ["itinerary", id],
     queryFn: () => api.get(`/itineraries/${id}`),
   });
-  const [rejected, setRejected] = useState<Set<string>>(new Set());
+
+  const [changes, setChanges] = useState<Map<string, Change>>(new Map());
+
+  // Alternatives are lazy-loaded the first time the user clicks a remove (X).
+  const altsQuery = useQuery<Alternative[]>({
+    queryKey: ["itinerary-alternatives", id],
+    queryFn: () => api.get(`/itineraries/${id}/alternatives`),
+    enabled: changes.size > 0,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const recompute = useMutation({
     mutationFn: (kept: string[]) =>
       api.post<Itinerary>(`/itineraries/${id}/recompute`, { kept_place_ids: kept }),
     onSuccess: (updated) => {
-      setRejected(new Set());
+      setChanges(new Map());
       qc.setQueryData(["itinerary", id], updated);
+      qc.invalidateQueries({ queryKey: ["itinerary-alternatives", id] });
     },
   });
+
+  const swappedAltIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of changes.values()) {
+      if (c.kind === "swap") s.add(c.with.place_id);
+    }
+    return s;
+  }, [changes]);
 
   if (isLoading) return <main className="p-8 text-ink/60">Loading…</main>;
   if (error || !data) return <main className="p-8">Could not load itinerary.</main>;
 
   const verb = MODE_VERB[data.transit_mode];
   const tooLong = data.total_travel_minutes > TOO_LONG_MINUTES[data.transit_mode];
-  const visibleStops = data.stops.filter((s) => !rejected.has(s.place_id));
-  const wouldRemain = visibleStops.length;
-  const canRecompute = rejected.size > 0 && wouldRemain >= 2;
 
-  function toggle(placeId: string) {
-    setRejected((prev) => {
-      const next = new Set(prev);
-      if (next.has(placeId)) next.delete(placeId);
-      else next.add(placeId);
+  const visibleStops: Stop[] = data.stops.flatMap((s) => {
+    const c = changes.get(s.place_id);
+    if (!c) return [s];
+    if (c.kind === "swap") {
+      // Render the new place at the old position; lat/lon comes from the alternative.
+      return [
+        {
+          ...s,
+          place_id: c.with.place_id,
+          name: c.with.name,
+          latitude: c.with.latitude,
+          longitude: c.with.longitude,
+          photo_url: c.with.photo_url,
+          rating: c.with.rating,
+          // Routing info won't be accurate until recompute lands; clear it.
+          travel_minutes_from_prev: null,
+          travel_steps_from_prev: [],
+        },
+      ];
+    }
+    return [];
+  });
+
+  const finalPlaceIds = data.stops.flatMap((s) => {
+    const c = changes.get(s.place_id);
+    if (!c) return [s.place_id];
+    if (c.kind === "swap") return [c.with.place_id];
+    return [];
+  });
+
+  const removeCount = Array.from(changes.values()).filter((c) => c.kind === "remove").length;
+  const swapCount = Array.from(changes.values()).filter((c) => c.kind === "swap").length;
+  const canApply = changes.size > 0 && finalPlaceIds.length >= 2;
+
+  function markRemove(placeId: string) {
+    setChanges((prev) => {
+      const next = new Map(prev);
+      next.set(placeId, { kind: "remove" });
+      return next;
+    });
+  }
+
+  function restoreOriginal(placeId: string) {
+    setChanges((prev) => {
+      const next = new Map(prev);
+      next.delete(placeId);
+      return next;
+    });
+  }
+
+  function pickAlternative(originalPlaceId: string, alt: Alternative) {
+    setChanges((prev) => {
+      const next = new Map(prev);
+      next.set(originalPlaceId, { kind: "swap", with: alt });
+      return next;
+    });
+  }
+
+  function clearAlternative(originalPlaceId: string) {
+    // Picked alt cleared but stop stays removed (user can re-pick).
+    setChanges((prev) => {
+      const next = new Map(prev);
+      next.set(originalPlaceId, { kind: "remove" });
       return next;
     });
   }
@@ -148,11 +298,12 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
       </header>
 
       <div className="grid gap-6 md:grid-cols-[1fr_2fr]">
-        <ol className="flex flex-col gap-0">
+        <ol className="flex flex-col gap-0 pb-24">
           {data.stops.map((s, idx) => {
-            const isRejected = rejected.has(s.place_id);
-            // Only show the inbound leg label/chips when the stop is kept.
-            const showLeg = !isRejected && s.travel_minutes_from_prev != null;
+            const c = changes.get(s.place_id);
+            const isRemoved = c !== undefined;
+            const showLeg = !isRemoved && s.travel_minutes_from_prev != null;
+            const selectedAlt = c?.kind === "swap" ? c.with : null;
             return (
               <li key={`${s.place_id}-${idx}`}>
                 {showLeg && (
@@ -170,7 +321,34 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
                     )}
                   </div>
                 )}
-                <StopCard stop={s} rejected={isRejected} onToggle={() => toggle(s.place_id)} />
+                <StopCard
+                  stop={s}
+                  change={c}
+                  onRemove={() => markRemove(s.place_id)}
+                  onRestore={() => restoreOriginal(s.place_id)}
+                />
+                {isRemoved && (
+                  <div className="ml-6 mt-1 mb-3">
+                    {altsQuery.isLoading && (
+                      <div className="text-xs text-ink/40">Finding nearby alternatives…</div>
+                    )}
+                    {altsQuery.data && (
+                      <AlternativesPicker
+                        alternatives={altsQuery.data}
+                        selected={selectedAlt}
+                        usedElsewhere={
+                          new Set(
+                            Array.from(swappedAltIds).filter(
+                              (pid) => pid !== selectedAlt?.place_id,
+                            ),
+                          )
+                        }
+                        onPick={(alt) => pickAlternative(s.place_id, alt)}
+                        onClear={() => clearAlternative(s.place_id)}
+                      />
+                    )}
+                  </div>
+                )}
               </li>
             );
           })}
@@ -178,38 +356,43 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
         <ItineraryMap stops={visibleStops} routeGeometry={data.route_geometry} />
       </div>
 
-      {rejected.size > 0 && (
+      {changes.size > 0 && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink/10 bg-white/95 px-6 py-3 shadow-lg backdrop-blur">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
             <div className="text-sm text-ink/70">
-              {rejected.size} stop{rejected.size === 1 ? "" : "s"} removed ·{" "}
-              <span className="font-medium text-ink">{wouldRemain} remaining</span>
+              {removeCount > 0 && (
+                <>
+                  <span className="font-medium text-ink">{removeCount}</span> removed
+                </>
+              )}
+              {removeCount > 0 && swapCount > 0 && " · "}
+              {swapCount > 0 && (
+                <>
+                  <span className="font-medium text-ink">{swapCount}</span> swapped
+                </>
+              )}
+              {" · "}
+              {finalPlaceIds.length} final stop{finalPlaceIds.length === 1 ? "" : "s"}
             </div>
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setRejected(new Set())}
+                onClick={() => setChanges(new Map())}
                 className="rounded-md border border-ink/15 px-3 py-1.5 text-sm hover:bg-ink/5"
               >
                 Reset
               </button>
               <button
                 type="button"
-                disabled={!canRecompute || recompute.isPending}
-                onClick={() =>
-                  recompute.mutate(
-                    data.stops
-                      .map((s) => s.place_id)
-                      .filter((pid) => !rejected.has(pid)),
-                  )
-                }
+                disabled={!canApply || recompute.isPending}
+                onClick={() => recompute.mutate(finalPlaceIds)}
                 className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-accent-dark disabled:opacity-50"
               >
                 {recompute.isPending
                   ? "Recalculating…"
-                  : wouldRemain < 2
+                  : finalPlaceIds.length < 2
                   ? "Keep at least 2 stops"
-                  : "Recalculate route"}
+                  : "Apply changes"}
               </button>
             </div>
           </div>

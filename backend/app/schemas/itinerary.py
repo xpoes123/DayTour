@@ -20,9 +20,19 @@ class FromPromptRequest(BaseModel):
 
 
 class RecomputeRequest(BaseModel):
-    # Google place_ids the user wants to keep. Must include at least 2 (the
-    # itinerary needs a route between something and something else).
+    # Google place_ids for the final stop set. May include place_ids that
+    # weren't part of the original itinerary as long as they exist in the
+    # places table (typically populated via /alternatives first).
     kept_place_ids: list[str] = Field(min_length=2, max_length=12)
+
+
+class AlternativeOut(BaseModel):
+    place_id: str
+    name: str
+    latitude: float | None
+    longitude: float | None
+    photo_url: str | None
+    rating: float | None
 
 
 TravelStepMode = Literal["walk", "bus", "subway", "rail"]
