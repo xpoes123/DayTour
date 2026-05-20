@@ -32,6 +32,9 @@ export default function Home() {
           Describe my vibe →
         </Link>
       </div>
+      <Link href="/auth" className="text-sm text-ink/50 hover:text-ink">
+        Sign in or create an account
+      </Link>
     </main>
   );
 }
