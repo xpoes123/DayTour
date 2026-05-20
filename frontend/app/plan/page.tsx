@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, type Itinerary } from "@/lib/api";
 
 export default function PlanPage() {
   const router = useRouter();
@@ -18,7 +18,7 @@ export default function PlanPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const itin = await api.post("/itineraries", {
+      const itin = await api.post<Itinerary>("/itineraries", {
         start_loc: startLoc,
         radius_m: radiusM,
         stop_count: stopCount,
