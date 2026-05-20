@@ -19,8 +19,10 @@ class FromPromptRequest(BaseModel):
     prompt: str = Field(min_length=4, max_length=500)
 
 
-class PickRequest(BaseModel):
-    selected_place_ids: list[str] = Field(min_length=2, max_length=11)
+class RecomputeRequest(BaseModel):
+    # Google place_ids the user wants to keep. Must include at least 2 (the
+    # itinerary needs a route between something and something else).
+    kept_place_ids: list[str] = Field(min_length=2, max_length=12)
 
 
 TravelStepMode = Literal["walk", "bus", "subway", "rail"]

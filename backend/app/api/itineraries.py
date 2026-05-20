@@ -18,8 +18,8 @@ from app.models import Itinerary, Place, Stop, User
 from app.schemas.itinerary import (
     FromPromptRequest,
     ItineraryOut,
-    PickRequest,
     PlanRequest,
+    RecomputeRequest,
     StopOut,
     TravelStep,
 )
@@ -223,11 +223,66 @@ async def get_itinerary(
     return await _to_out(itin, [(s, by_id[s.place_id]) for s in stops])
 
 
-@router.post("/{itinerary_id}/pick", response_model=ItineraryOut)
-async def pick(
+@router.post("/{itinerary_id}/recompute", response_model=ItineraryOut)
+async def recompute(
     itinerary_id: int,
-    body: PickRequest,
+    body: RecomputeRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    # TODO: replace existing stops with the user's selection, re-run routing
-    raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, "Pick flow lands in phase 1.5")
+    """Drop the stops the user rejected, then re-route on the kept subset.
+
+    The kept set must be a subset of the itinerary's existing stops (we don't
+    let users add arbitrary new places here — that's a re-plan).
+    """
+    itin = (
+        await db.execute(select(Itinerary).where(Itinerary.id == itinerary_id))
+    ).scalar_one_or_none()
+    if not itin:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+    existing_stops = (
+        await db.execute(select(Stop).where(Stop.itinerary_id == itin.id))
+    ).scalars().all()
+    place_rows = (
+        await db.execute(select(Place).where(Place.id.in_([s.place_id for s in existing_stops])))
+    ).scalars().all()
+    place_by_pk = {p.id: p for p in place_rows}
+    existing_by_google = {place_by_pk[s.place_id].google_place_id: s for s in existing_stops}
+
+    kept = [pid for pid in body.kept_place_ids if pid in existing_by_google]
+    if len(kept) < 2:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Keep at least 2 of the existing stops to recompute a route.",
+        )
+
+    # Re-order the kept set via 2-opt anchored on the first kept stop.
+    kept_places = [place_by_pk[existing_by_google[pid].place_id] for pid in kept]
+    geo_points = [
+        routing.GeoPoint(place_id=p.google_place_id, lat=p.latitude, lon=p.longitude)
+        for p in kept_places
+        if p.latitude is not None and p.longitude is not None
+    ]
+    if len(geo_points) < 2:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Kept stops are missing coordinates — can't recompute.",
+        )
+    ordered_ids = routing.best_path(geo_points)
+    ordered_unique = ordered_ids[:-1] if ordered_ids[0] == ordered_ids[-1] else ordered_ids
+
+    # Replace the itinerary's stop set with the kept-and-reordered subset.
+    for s in existing_stops:
+        await db.delete(s)
+    await db.flush()
+
+    place_by_google = {p.google_place_id: p for p in kept_places}
+    new_stops_with_places: list[tuple[Stop, Place]] = []
+    for pos, pid in enumerate(ordered_unique):
+        p = place_by_google[pid]
+        stop = Stop(itinerary_id=itin.id, place_id=p.id, position=pos)
+        db.add(stop)
+        new_stops_with_places.append((stop, p))
+
+    await db.commit()
+    return await _to_out(itin, new_stops_with_places)
