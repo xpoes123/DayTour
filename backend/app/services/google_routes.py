@@ -38,12 +38,16 @@ _FIELD_MASK = (
 
 
 def _parse_steps(leg_obj: dict[str, Any]) -> list[dict[str, Any]]:
-    """Flatten a Google Routes leg into [{mode, duration_sec, distance_m, label?}].
+    """Flatten + consolidate a Google Routes leg into chip-sized pieces.
 
     mode is normalized to one of: 'walk', 'bus', 'subway', 'rail'.
     label, when present, is the line short-name (e.g. 'L', 'M14').
+
+    Google returns turn-by-turn granularity (each direction change is its own
+    step), which makes for a wall of chips. We merge consecutive steps with
+    the same (mode, label) into a single chip with summed duration + distance.
     """
-    out: list[dict[str, Any]] = []
+    raw: list[dict[str, Any]] = []
     for step in leg_obj.get("steps", []) or []:
         tm = step.get("travelMode")
         dur = _seconds_from_duration(step.get("staticDuration", "0s"))
@@ -58,17 +62,28 @@ def _parse_steps(leg_obj: dict[str, Any]) -> list[dict[str, Any]]:
                 mode = "bus"
             elif vtype in {"SUBWAY", "METRO_RAIL", "MONORAIL", "HEAVY_RAIL"}:
                 mode = "subway"
-            elif vtype in {"RAIL", "COMMUTER_TRAIN", "HIGH_SPEED_TRAIN", "LONG_DISTANCE_TRAIN"}:
-                mode = "rail"
-            elif vtype in {"TRAM", "LIGHT_RAIL", "CABLE_CAR", "FUNICULAR", "GONDOLA_LIFT"}:
+            elif vtype in {
+                "RAIL", "COMMUTER_TRAIN", "HIGH_SPEED_TRAIN", "LONG_DISTANCE_TRAIN",
+                "TRAM", "LIGHT_RAIL", "CABLE_CAR", "FUNICULAR", "GONDOLA_LIFT",
+            }:
                 mode = "rail"
             else:
                 mode = "subway"
             label = td.get("nameShort") or td.get("name") or None
         else:
             continue
-        out.append({"mode": mode, "duration_sec": dur, "distance_m": dist, "label": label})
-    return out
+        raw.append({"mode": mode, "duration_sec": dur, "distance_m": dist, "label": label})
+
+    merged: list[dict[str, Any]] = []
+    for s in raw:
+        if merged and merged[-1]["mode"] == s["mode"] and merged[-1]["label"] == s["label"]:
+            merged[-1]["duration_sec"] += s["duration_sec"]
+            merged[-1]["distance_m"] += s["distance_m"]
+        else:
+            merged.append(dict(s))
+
+    # Drop walks under a minute — they're noise between transit transfers.
+    return [s for s in merged if not (s["mode"] == "walk" and s["duration_sec"] < 60)]
 _CACHE_TTL = 60 * 60 * 6  # 6h — transit schedules drift
 
 
