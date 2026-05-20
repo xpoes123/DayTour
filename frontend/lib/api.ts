@@ -147,3 +147,49 @@ export function formatMinutes(mins: number): string {
   const m = mins % 60;
   return m === 0 ? `${h} hr` : `${h} hr ${m} min`;
 }
+
+/** Rough dwell time at a place based on its name. Tourists optimize ergonomics, not accuracy. */
+export function dwellMinutes(name: string): number {
+  const n = name.toLowerCase();
+  if (/(museum|art|gallery|aquarium|planetarium|library)\b/.test(n)) return 90;
+  if (/(park|garden|trail|point|beach|preserve|reserve|lookout|overlook)\b/.test(n)) return 60;
+  if (/(restaurant|cafe|coffee|brewery|bar|pub|diner|bistro)\b/.test(n)) return 75;
+  if (/(zoo|market|stadium|arena|theater|theatre|cathedral|temple|mosque|shrine)\b/.test(n))
+    return 75;
+  if (/(square|plaza|monument|memorial|tower|bridge|statue|fountain|observatory)\b/.test(n))
+    return 30;
+  return 45;
+}
+
+/** Format a Date as a local clock-time like "10:30 AM". */
+export function formatClock(d: Date): string {
+  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+/** Walk the stops to assign arrival/depart times given a start clock-time (HH:mm). */
+export type ScheduledStop = {
+  arrival: Date;
+  depart: Date;
+};
+
+export function computeSchedule(
+  stops: Stop[],
+  startHHMM: string,
+): ScheduledStop[] {
+  const [h, m] = startHHMM.split(":").map((v) => Number.parseInt(v, 10));
+  const cursor = new Date();
+  cursor.setHours(h, m, 0, 0);
+  const out: ScheduledStop[] = [];
+  for (let i = 0; i < stops.length; i++) {
+    const s = stops[i];
+    if (i > 0 && s.travel_minutes_from_prev != null) {
+      cursor.setMinutes(cursor.getMinutes() + s.travel_minutes_from_prev);
+    }
+    const arrival = new Date(cursor);
+    const dwell = dwellMinutes(s.name);
+    cursor.setMinutes(cursor.getMinutes() + dwell);
+    const depart = new Date(cursor);
+    out.push({ arrival, depart });
+  }
+  return out;
+}

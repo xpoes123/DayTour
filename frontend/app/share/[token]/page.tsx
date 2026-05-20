@@ -2,9 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { use } from "react";
+import { use, useState } from "react";
 import {
   api,
+  computeSchedule,
+  dwellMinutes,
+  formatClock,
   formatMinutes,
   photoSrc,
   type Itinerary,
@@ -33,6 +36,7 @@ export default function SharedItineraryPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = use(params);
+  const [startTime, setStartTime] = useState("09:00");
   const { data, isLoading, error } = useQuery<Itinerary>({
     queryKey: ["share", token],
     queryFn: () => api.get(`/itineraries/by-share/${token}`),
@@ -56,6 +60,8 @@ export default function SharedItineraryPage({
     );
 
   const verb = MODE_VERB[data.transit_mode];
+  const schedule = computeSchedule(data.stops, startTime);
+  const endTime = schedule.length > 0 ? schedule[schedule.length - 1].depart : null;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
@@ -85,6 +91,23 @@ export default function SharedItineraryPage({
             {data.summary}
           </div>
         )}
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm">
+          <label className="flex items-center gap-2">
+            <span className="text-ink/60">Start at</span>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="rounded border border-ink/15 bg-white px-2 py-1 tabular-nums"
+            />
+          </label>
+          {endTime && (
+            <div className="text-ink/60">
+              · Done by{" "}
+              <span className="font-medium tabular-nums text-ink">{formatClock(endTime)}</span>
+            </div>
+          )}
+        </div>
         <TripActions itinerary={data} />
       </header>
 
@@ -92,6 +115,7 @@ export default function SharedItineraryPage({
         <ol className="flex flex-col gap-0">
           {data.stops.map((s, idx) => {
             const img = photoSrc(s.photo_url);
+            const sched = schedule[idx];
             return (
               <li key={`${s.place_id}-${idx}`}>
                 {s.travel_minutes_from_prev != null && (
@@ -135,11 +159,23 @@ export default function SharedItineraryPage({
                     />
                   )}
                   <div className="p-3">
-                    <div className="text-xs text-ink/50">Stop {s.position + 1}</div>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <div className="text-xs text-ink/50">Stop {s.position + 1}</div>
+                      {sched && (
+                        <div className="text-xs tabular-nums text-ink/60">
+                          {formatClock(sched.arrival)} – {formatClock(sched.depart)}
+                        </div>
+                      )}
+                    </div>
                     <div className="font-medium">{s.name}</div>
-                    {s.rating != null && (
-                      <div className="text-sm text-ink/60">★ {s.rating.toFixed(1)}</div>
-                    )}
+                    <div className="flex items-center gap-2 text-sm text-ink/60">
+                      {s.rating != null && <span>★ {s.rating.toFixed(1)}</span>}
+                      {sched && (
+                        <span className="text-ink/40">
+                          · ~{dwellMinutes(s.name)} min here
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </li>

@@ -4,10 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { use, useMemo, useState } from "react";
 import {
   api,
+  computeSchedule,
+  dwellMinutes,
+  formatClock,
   formatMinutes,
   photoSrc,
   type Alternative,
   type Itinerary,
+  type ScheduledStop,
   type Stop,
   type TravelStep,
 } from "@/lib/api";
@@ -117,11 +121,13 @@ function AlternativesPicker({
 function StopCard({
   stop,
   change,
+  schedule,
   onRemove,
   onRestore,
 }: {
   stop: Stop;
   change: Change | undefined;
+  schedule: ScheduledStop | null;
   onRemove: () => void;
   onRestore: () => void;
 }) {
@@ -159,13 +165,23 @@ function StopCard({
         >
           {rejected ? "↺" : "×"}
         </button>
-        <div className="text-xs text-ink/50">Stop {stop.position + 1}</div>
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="text-xs text-ink/50">Stop {stop.position + 1}</div>
+          {schedule && !rejected && (
+            <div className="text-xs tabular-nums text-ink/60">
+              {formatClock(schedule.arrival)} – {formatClock(schedule.depart)}
+            </div>
+          )}
+        </div>
         <div className={`font-medium ${rejected ? "line-through text-ink/60" : ""}`}>
           {stop.name}
         </div>
-        {stop.rating != null && (
-          <div className="text-sm text-ink/60">★ {stop.rating.toFixed(1)}</div>
-        )}
+        <div className="flex items-center gap-2 text-sm text-ink/60">
+          {stop.rating != null && <span>★ {stop.rating.toFixed(1)}</span>}
+          {schedule && !rejected && (
+            <span className="text-ink/40">· ~{dwellMinutes(stop.name)} min here</span>
+          )}
+        </div>
         {change?.kind === "swap" && (
           <div className="mt-2 rounded-md border border-accent/40 bg-accent/10 px-2 py-1.5 text-sm">
             <div className="text-xs uppercase tracking-wide text-accent-dark">Swapping in</div>
@@ -187,6 +203,7 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
   });
 
   const [changes, setChanges] = useState<Map<string, Change>>(new Map());
+  const [startTime, setStartTime] = useState("09:00");
 
   // Alternatives are lazy-loaded the first time the user clicks a remove (X).
   const altsQuery = useQuery<Alternative[]>({
@@ -219,6 +236,11 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
 
   const verb = MODE_VERB[data.transit_mode];
   const tooLong = data.total_travel_minutes > TOO_LONG_MINUTES[data.transit_mode];
+
+  // Pre-compute the schedule from the current stops + start time. Indexed by
+  // position so rejected/swapped slots still align.
+  const schedule = computeSchedule(data.stops, startTime);
+  const endTime = schedule.length > 0 ? schedule[schedule.length - 1].depart : null;
 
   const visibleStops: Stop[] = data.stops.flatMap((s) => {
     const c = changes.get(s.place_id);
@@ -318,6 +340,23 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
             radius, dropping stops, or switching transit mode.
           </div>
         )}
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm">
+          <label className="flex items-center gap-2">
+            <span className="text-ink/60">Start at</span>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="rounded border border-ink/15 bg-white px-2 py-1 tabular-nums"
+            />
+          </label>
+          {endTime && (
+            <div className="text-ink/60">
+              · Done by{" "}
+              <span className="font-medium tabular-nums text-ink">{formatClock(endTime)}</span>
+            </div>
+          )}
+        </div>
         <TripActions itinerary={data} />
       </header>
 
@@ -348,6 +387,7 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
                 <StopCard
                   stop={s}
                   change={c}
+                  schedule={schedule[idx] ?? null}
                   onRemove={() => markRemove(s.place_id)}
                   onRestore={() => restoreOriginal(s.place_id)}
                 />
