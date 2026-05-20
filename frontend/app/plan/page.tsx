@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, type Itinerary } from "@/lib/api";
+import { PlaceAutocomplete } from "@/components/place-autocomplete";
 
 export default function PlanPage() {
   const router = useRouter();
@@ -51,11 +52,10 @@ export default function PlanPage() {
       <form onSubmit={onSubmit} className="flex flex-col gap-5">
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink/80">Starting location</span>
-          <input
+          <PlaceAutocomplete
             value={startLoc}
-            onChange={(e) => setStartLoc(e.target.value)}
+            onChange={setStartLoc}
             placeholder="Wisconsin State Capitol"
-            className="field"
             required
           />
         </label>

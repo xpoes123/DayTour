@@ -57,6 +57,12 @@ export const api = {
     request<T>(path, { method: "POST", body: JSON.stringify(body) }),
 };
 
+export type PlaceSuggestion = {
+  place_id: string;
+  label: string;
+  primary: string;
+};
+
 export const auth = {
   async register(body: { username: string; email: string; password: string }) {
     await request("/auth/register", { method: "POST", body: JSON.stringify(body) });
