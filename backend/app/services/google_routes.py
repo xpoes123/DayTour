@@ -10,6 +10,7 @@ Pricing: ~$5 per 1000 requests for basic compute mode. Cached in Redis 6h.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -57,21 +58,61 @@ def _seconds_from_duration(s: str | int | float) -> int:
         return 0
 
 
+_TRAVEL_MODE = {
+    "walking": "WALK",
+    "bicycling": "BICYCLE",
+    "driving": "DRIVE",
+    "transit": "TRANSIT",
+}
+
+
+async def _one_leg(
+    client: httpx.AsyncClient,
+    a: tuple[float, float],
+    b: tuple[float, float],
+    travel_mode: str,
+    api_key: str,
+) -> dict[str, Any] | None:
+    """Fetch a single origin→destination route from Google."""
+    body: dict[str, Any] = {
+        "origin": _waypoint(*a),
+        "destination": _waypoint(*b),
+        "travelMode": travel_mode,
+        "polylineEncoding": "GEO_JSON_LINESTRING",
+        "computeAlternativeRoutes": False,
+    }
+    if travel_mode == "TRANSIT":
+        body["transitPreferences"] = {
+            "allowedTravelModes": ["BUS", "SUBWAY", "TRAIN", "LIGHT_RAIL", "RAIL"]
+        }
+    headers = {
+        "X-Goog-Api-Key": api_key,
+        "X-Goog-FieldMask": _FIELD_MASK,
+        "Content-Type": "application/json",
+    }
+    try:
+        resp = await client.post(_API_URL, headers=headers, json=body)
+        resp.raise_for_status()
+        return resp.json()
+    except (httpx.HTTPError, ValueError) as e:
+        logger.warning("Google Routes leg failed: %s", e)
+        return None
+
+
 async def route(
     coords_lat_lon: list[tuple[float, float]], transit_mode: str
 ) -> dict[str, Any] | None:
-    """Return {legs, geometry, total_*} via Google Routes, or None on failure."""
+    """Return {legs, geometry, total_*} via Google Routes, or None on failure.
+
+    TRANSIT mode requires one Google Routes call per leg (the API rejects
+    intermediate waypoints for transit), so we fan out the legs in parallel.
+    Non-transit modes do a single multi-stop call.
+    """
     settings = get_settings()
     api_key = settings.google_places_api_key
     if not api_key or len(coords_lat_lon) < 2:
         return None
-
-    travel_mode = {
-        "walking": "WALK",
-        "bicycling": "BICYCLE",
-        "driving": "DRIVE",
-        "transit": "TRANSIT",
-    }.get(transit_mode)
+    travel_mode = _TRAVEL_MODE.get(transit_mode)
     if travel_mode is None:
         return None
 
@@ -81,59 +122,77 @@ async def route(
     if cached:
         return json.loads(cached)
 
-    origin = _waypoint(*coords_lat_lon[0])
-    destination = _waypoint(*coords_lat_lon[-1])
-    intermediates = [_waypoint(lat, lon) for lat, lon in coords_lat_lon[1:-1]]
+    legs: list[dict[str, Any]] = []
+    geometry: list[list[float]] = []
+    total_duration = 0
+    total_distance = 0
 
-    body: dict[str, Any] = {
-        "origin": origin,
-        "destination": destination,
-        "travelMode": travel_mode,
-        "polylineEncoding": "GEO_JSON_LINESTRING",
-        "computeAlternativeRoutes": False,
-    }
-    if intermediates:
-        body["intermediates"] = intermediates
-    if travel_mode == "TRANSIT":
-        body["transitPreferences"] = {
-            "allowedTravelModes": ["BUS", "SUBWAY", "TRAIN", "LIGHT_RAIL", "RAIL"]
-        }
-
-    headers = {
-        "X-Goog-Api-Key": api_key,
-        "X-Goog-FieldMask": _FIELD_MASK,
-        "Content-Type": "application/json",
-    }
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(_API_URL, headers=headers, json=body)
-            resp.raise_for_status()
-            data = resp.json()
-    except (httpx.HTTPError, ValueError) as e:
-        logger.warning("Google Routes API call failed: %s", e)
-        return None
-
-    routes = data.get("routes") or []
-    if not routes:
-        return None
-    route_obj = routes[0]
-
-    legs_raw = route_obj.get("legs") or []
-    legs = [
-        {
-            "duration_sec": _seconds_from_duration(leg.get("duration", "0s")),
-            "distance_m": int(leg.get("distanceMeters", 0)),
-        }
-        for leg in legs_raw
-    ]
-    ls = route_obj.get("polyline", {}).get("geoJsonLinestring", {})
-    geometry = [[lat, lon] for lon, lat in (ls.get("coordinates") or [])]
+    async with httpx.AsyncClient(timeout=12) as client:
+        if travel_mode == "TRANSIT":
+            # Fan out one call per leg.
+            pairs = list(zip(coords_lat_lon, coords_lat_lon[1:]))
+            results = await asyncio.gather(
+                *(_one_leg(client, a, b, travel_mode, api_key) for a, b in pairs)
+            )
+            for resp in results:
+                if not resp:
+                    return None
+                routes = resp.get("routes") or []
+                if not routes:
+                    return None
+                ro = routes[0]
+                dur = _seconds_from_duration(ro.get("duration", "0s"))
+                dist = int(ro.get("distanceMeters", 0))
+                legs.append({"duration_sec": dur, "distance_m": dist})
+                total_duration += dur
+                total_distance += dist
+                ls = ro.get("polyline", {}).get("geoJsonLinestring", {})
+                geometry.extend([[lat, lon] for lon, lat in (ls.get("coordinates") or [])])
+        else:
+            # Single multi-stop call (intermediates are fine for non-transit).
+            body: dict[str, Any] = {
+                "origin": _waypoint(*coords_lat_lon[0]),
+                "destination": _waypoint(*coords_lat_lon[-1]),
+                "travelMode": travel_mode,
+                "polylineEncoding": "GEO_JSON_LINESTRING",
+                "computeAlternativeRoutes": False,
+            }
+            inter = [_waypoint(lat, lon) for lat, lon in coords_lat_lon[1:-1]]
+            if inter:
+                body["intermediates"] = inter
+            headers = {
+                "X-Goog-Api-Key": api_key,
+                "X-Goog-FieldMask": _FIELD_MASK,
+                "Content-Type": "application/json",
+            }
+            try:
+                resp = await client.post(_API_URL, headers=headers, json=body)
+                resp.raise_for_status()
+                data = resp.json()
+            except (httpx.HTTPError, ValueError) as e:
+                logger.warning("Google Routes API call failed: %s", e)
+                return None
+            routes = data.get("routes") or []
+            if not routes:
+                return None
+            ro = routes[0]
+            for leg in ro.get("legs") or []:
+                legs.append(
+                    {
+                        "duration_sec": _seconds_from_duration(leg.get("duration", "0s")),
+                        "distance_m": int(leg.get("distanceMeters", 0)),
+                    }
+                )
+            ls = ro.get("polyline", {}).get("geoJsonLinestring", {})
+            geometry = [[lat, lon] for lon, lat in (ls.get("coordinates") or [])]
+            total_duration = _seconds_from_duration(ro.get("duration", "0s"))
+            total_distance = int(ro.get("distanceMeters", 0))
 
     result = {
         "legs": legs,
         "geometry": geometry,
-        "total_duration_sec": _seconds_from_duration(route_obj.get("duration", "0s")),
-        "total_distance_m": int(route_obj.get("distanceMeters", 0)),
+        "total_duration_sec": total_duration,
+        "total_distance_m": total_distance,
     }
     await r.set(key, json.dumps(result), ex=_CACHE_TTL)
     return result
