@@ -35,6 +35,15 @@ class AlternativeOut(BaseModel):
     rating: float | None
 
 
+class RestaurantOut(BaseModel):
+    place_id: str
+    name: str
+    rating: float | None
+    price_level: str | None
+    address: str | None
+    photo_url: str | None
+
+
 TravelStepMode = Literal["walk", "bus", "subway", "rail"]
 
 

@@ -16,6 +16,7 @@ import {
   type TravelStep,
 } from "@/lib/api";
 import { ItineraryMap } from "@/components/itinerary-map";
+import { NearbyRestaurants } from "@/components/nearby-restaurants";
 import { TripActions } from "@/components/trip-actions";
 
 const MODE_VERB: Record<Itinerary["transit_mode"], string> = {
@@ -120,12 +121,14 @@ function AlternativesPicker({
 
 function StopCard({
   stop,
+  itineraryId,
   change,
   schedule,
   onRemove,
   onRestore,
 }: {
   stop: Stop;
+  itineraryId: number;
   change: Change | undefined;
   schedule: ScheduledStop | null;
   onRemove: () => void;
@@ -187,6 +190,9 @@ function StopCard({
             <div className="text-xs uppercase tracking-wide text-accent-dark">Swapping in</div>
             <div className="font-medium text-ink">{change.with.name}</div>
           </div>
+        )}
+        {!rejected && (
+          <NearbyRestaurants itineraryId={itineraryId} placeId={stop.place_id} />
         )}
       </div>
     </div>
@@ -386,6 +392,7 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
                 )}
                 <StopCard
                   stop={s}
+                  itineraryId={data.id}
                   change={c}
                   schedule={schedule[idx] ?? null}
                   onRemove={() => markRemove(s.place_id)}

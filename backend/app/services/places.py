@@ -141,6 +141,56 @@ async def autocomplete(query: str, limit: int = 6) -> list[dict[str, str]]:
     return result
 
 
+async def nearby_restaurants(
+    lat: float, lon: float, radius_m: int = 600, max_results: int = 4
+) -> list[dict[str, Any]]:
+    """Return up to `max_results` restaurants near a point."""
+
+    payload = {"lat": lat, "lon": lon, "radius": radius_m, "n": max_results, "k": "rest"}
+
+    async def fetch():
+        url = "https://places.googleapis.com/v1/places:searchNearby"
+        headers = {
+            "X-Goog-Api-Key": _settings.google_places_api_key,
+            "X-Goog-FieldMask": (
+                "places.id,places.displayName,places.location,places.photos,"
+                "places.rating,places.priceLevel,places.formattedAddress"
+            ),
+            "Content-Type": "application/json",
+        }
+        body = {
+            "includedTypes": ["restaurant"],
+            "maxResultCount": max_results,
+            "rankPreference": "DISTANCE",
+            "locationRestriction": {
+                "circle": {
+                    "center": {"latitude": lat, "longitude": lon},
+                    "radius": radius_m,
+                }
+            },
+        }
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(url, headers=headers, json=body)
+            resp.raise_for_status()
+            data = resp.json()
+        out = []
+        for p in data.get("places", []):
+            photos = p.get("photos") or []
+            out.append({
+                "place_id": p["id"],
+                "name": p["displayName"]["text"],
+                "lat": p["location"]["latitude"],
+                "lon": p["location"]["longitude"],
+                "rating": p.get("rating"),
+                "price_level": p.get("priceLevel"),
+                "address": p.get("formattedAddress"),
+                "photo_name": photos[0]["name"] if photos else None,
+            })
+        return out
+
+    return await _cached_or_call("searchNearbyRest", payload, fetch)
+
+
 async def nearby_attractions(
     lat: float, lon: float, radius_m: int, max_results: int = 10
 ) -> list[dict[str, Any]]:

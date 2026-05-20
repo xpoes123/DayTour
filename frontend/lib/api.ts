@@ -80,6 +80,15 @@ export type Alternative = {
   rating: number | null;
 };
 
+export type Restaurant = {
+  place_id: string;
+  name: string;
+  rating: number | null;
+  price_level: string | null;
+  address: string | null;
+  photo_url: string | null;
+};
+
 export const auth = {
   async register(body: { username: string; email: string; password: string }) {
     await request("/auth/register", { method: "POST", body: JSON.stringify(body) });

@@ -24,6 +24,7 @@ from app.schemas.itinerary import (
     ItineraryOut,
     PlanRequest,
     RecomputeRequest,
+    RestaurantOut,
     StopOut,
     TravelStep,
 )
@@ -279,6 +280,41 @@ async def get_itinerary(
     return await _to_out(
         itin, [(s, by_id[s.place_id]) for s in stops], db=db, generate_summary=True
     )
+
+
+@router.get("/{itinerary_id}/stops/{place_id}/restaurants", response_model=list[RestaurantOut])
+async def stop_restaurants(
+    itinerary_id: int,
+    place_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    limit: int = 4,
+):
+    """Nearby restaurants around a specific stop on the itinerary."""
+    # itinerary_id is in the path mostly for hygiene; we just look up the Place.
+    place = (
+        await db.execute(select(Place).where(Place.google_place_id == place_id))
+    ).scalar_one_or_none()
+    if not place or place.latitude is None or place.longitude is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "stop not found")
+    raw = await places.nearby_restaurants(
+        place.latitude, place.longitude, radius_m=600, max_results=limit
+    )
+    out: list[RestaurantOut] = []
+    for c in raw:
+        # Persist into the places table so the photo proxy works the same way.
+        p = await _upsert_place(db, c)
+        out.append(
+            RestaurantOut(
+                place_id=p.google_place_id,
+                name=p.name,
+                rating=p.rating,
+                price_level=c.get("price_level"),
+                address=c.get("address"),
+                photo_url=_photo_url(p),
+            )
+        )
+    await db.commit()
+    return out
 
 
 @router.get("/{itinerary_id}/alternatives", response_model=list[AlternativeOut])

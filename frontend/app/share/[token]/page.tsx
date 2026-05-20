@@ -14,6 +14,7 @@ import {
   type TravelStep,
 } from "@/lib/api";
 import { ItineraryMap } from "@/components/itinerary-map";
+import { NearbyRestaurants } from "@/components/nearby-restaurants";
 import { TripActions } from "@/components/trip-actions";
 
 const MODE_VERB: Record<Itinerary["transit_mode"], string> = {
@@ -176,6 +177,7 @@ export default function SharedItineraryPage({
                         </span>
                       )}
                     </div>
+                    <NearbyRestaurants itineraryId={data.id} placeId={s.place_id} />
                   </div>
                 </div>
               </li>
