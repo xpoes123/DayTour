@@ -1,0 +1,20 @@
+[Unit]
+Description=daytour.djiang.xyz — Next.js frontend
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/daytour/frontend
+ExecStart=/usr/bin/pnpm start --port 7783 --hostname 127.0.0.1
+Restart=on-failure
+RestartSec=5
+EnvironmentFile=/opt/daytour/frontend/.env.production
+Environment=NODE_ENV=production
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=daytour-frontend
+
+[Install]
+WantedBy=multi-user.target

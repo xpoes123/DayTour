@@ -1,0 +1,19 @@
+[Unit]
+Description=daytour.djiang.xyz — FastAPI backend
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/daytour/backend
+ExecStart=/opt/daytour/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 7782
+Restart=on-failure
+RestartSec=5
+EnvironmentFile=/opt/daytour/backend/.env
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=daytour-backend
+
+[Install]
+WantedBy=multi-user.target

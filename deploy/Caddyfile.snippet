@@ -1,0 +1,25 @@
+# Caddy reverse-proxy snippet for daytour.djiang.xyz.
+# Append to /etc/caddy/Caddyfile and run: sudo systemctl reload caddy
+#
+# Requires A record for daytour.djiang.xyz pointed at this box.
+# /api/* → FastAPI backend (uvicorn :7782)
+# everything else → Next.js frontend (pnpm start :7783)
+
+daytour.djiang.xyz {
+    encode zstd gzip
+
+    @api path /api/*
+    handle @api {
+        reverse_proxy 127.0.0.1:7782 {
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:7783 {
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+}
