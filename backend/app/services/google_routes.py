@@ -14,6 +14,7 @@ import asyncio
 import hashlib
 import json
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import httpx
@@ -100,6 +101,20 @@ def _waypoint(lat: float, lon: float) -> dict:
     return {"location": {"latLng": {"latitude": lat, "longitude": lon}}}
 
 
+def _sensible_transit_departure() -> str:
+    """RFC3339 timestamp for the next 10:00 UTC.
+
+    Routes API defaults to 'now' for TRANSIT, so plans built at 3am show
+    overnight bus detours. Anchoring to a normal-hours departure makes
+    every transit plan look the way the user expects.
+    """
+    now = datetime.now(timezone.utc)
+    candidate = now.replace(hour=10, minute=0, second=0, microsecond=0)
+    if candidate <= now:
+        candidate += timedelta(days=1)
+    return candidate.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def _seconds_from_duration(s: str | int | float) -> int:
     """Routes API returns duration as e.g. '320s'. Sometimes int/float too."""
     if isinstance(s, (int, float)):
@@ -140,6 +155,7 @@ async def _one_leg(
         body["transitPreferences"] = {
             "allowedTravelModes": ["BUS", "SUBWAY", "TRAIN", "LIGHT_RAIL", "RAIL"]
         }
+        body["departureTime"] = _sensible_transit_departure()
     headers = {
         "X-Goog-Api-Key": api_key,
         "X-Goog-FieldMask": _FIELD_MASK,
