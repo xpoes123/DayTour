@@ -133,24 +133,47 @@ async def _to_out(
                 longitude=place.longitude,
                 photo_url=_photo_url(place),
                 rating=place.rating,
+                description=place.description,
                 travel_minutes_from_prev=leg_minutes,
                 travel_steps_from_prev=steps,
             )
         )
 
-    # Lazy summary: generate on first GET, persist back. Skip on POST so
-    # planning latency stays snappy; the user will see "Generating preview…"
-    # for a beat on the result page, then it pops in on refresh.
-    if generate_summary and db is not None and not itinerary.summary:
+    # Lazy AI fill: trip summary + per-place descriptions. Generated on first
+    # GET, persisted back. Skipped on POST so planning latency stays snappy;
+    # the user sees the text fill in on the next page load.
+    if generate_summary and db is not None:
+        if not itinerary.summary:
+            try:
+                text = await llm.summarize_itinerary(
+                    [p.name for _, p in ordered], itinerary.start_loc, mode
+                )
+                if text:
+                    itinerary.summary = text
+            except Exception as e:
+                logger.warning(
+                    "summary generation failed for itinerary %s: %s", itinerary.id, e
+                )
+
+        # Descriptions are per-place, so they get cached across trips.
+        needs_desc = [(s, p) for s, p in ordered if not p.description]
+        if needs_desc:
+            try:
+                items = [
+                    {"name": p.name, "context": itinerary.start_loc} for _, p in needs_desc
+                ]
+                descs = await llm.describe_places(items)
+                for (_, p), d in zip(needs_desc, descs):
+                    if d:
+                        p.description = d.strip()
+            except Exception as e:
+                logger.warning(
+                    "describe_places failed for itinerary %s: %s", itinerary.id, e
+                )
         try:
-            text = await llm.summarize_itinerary(
-                [p.name for _, p in ordered], itinerary.start_loc, mode
-            )
-            if text:
-                itinerary.summary = text
-                await db.commit()
+            await db.commit()
         except Exception as e:
-            logger.warning("summary generation failed for itinerary %s: %s", itinerary.id, e)
+            logger.warning("commit failed: %s", e)
 
     return ItineraryOut(
         id=itinerary.id,

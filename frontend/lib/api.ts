@@ -132,6 +132,7 @@ export type Stop = {
   longitude: number | null;
   photo_url: string | null;
   rating: number | null;
+  description: string | null;
   travel_minutes_from_prev: number | null;
   travel_steps_from_prev: TravelStep[];
 };

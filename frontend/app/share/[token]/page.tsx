@@ -177,6 +177,9 @@ export default function SharedItineraryPage({
                         </span>
                       )}
                     </div>
+                    {s.description && (
+                      <p className="mt-2 text-sm leading-snug text-ink/75">{s.description}</p>
+                    )}
                     <NearbyRestaurants itineraryId={data.id} placeId={s.place_id} />
                   </div>
                 </div>

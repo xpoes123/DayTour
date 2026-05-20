@@ -17,6 +17,7 @@ class Place(Base):
     address: Mapped[str | None] = mapped_column(String(512), nullable=True)
     photo_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     rating: Mapped[float | None] = mapped_column(Float, nullable=True)
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
     price_level: Mapped[int | None] = mapped_column(Integer, nullable=True)
     num_visits: Mapped[int] = mapped_column(Integer, default=0)
     refreshed_at: Mapped[datetime] = mapped_column(

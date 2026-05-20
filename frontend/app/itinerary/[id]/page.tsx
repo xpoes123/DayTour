@@ -185,6 +185,9 @@ function StopCard({
             <span className="text-ink/40">· ~{dwellMinutes(stop.name)} min here</span>
           )}
         </div>
+        {!rejected && stop.description && (
+          <p className="mt-2 text-sm leading-snug text-ink/75">{stop.description}</p>
+        )}
         {change?.kind === "swap" && (
           <div className="mt-2 rounded-md border border-accent/40 bg-accent/10 px-2 py-1.5 text-sm">
             <div className="text-xs uppercase tracking-wide text-accent-dark">Swapping in</div>

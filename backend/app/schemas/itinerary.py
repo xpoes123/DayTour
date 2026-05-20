@@ -63,6 +63,8 @@ class StopOut(BaseModel):
     longitude: float | None
     photo_url: str | None
     rating: float | None
+    # AI-written one-sentence description, persisted on Place.
+    description: str | None = None
     # Minutes to travel from the previous stop to this one (null for first).
     travel_minutes_from_prev: int | None = None
     # For transit legs: the step breakdown (walk → ride → walk). For other

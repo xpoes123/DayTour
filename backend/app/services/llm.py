@@ -44,6 +44,39 @@ async def prompt_to_plan(prompt: str) -> dict[str, Any]:
     return json.loads(text)
 
 
+_DESC_SYS = """You write one-sentence "why visit" blurbs for places on a day trip.
+
+You'll be given a JSON list of {"name": "...", "context": "..."}.
+Return JSON: a list of strings, same length and order. Each string is one
+specific, vivid sentence (~15-25 words). No marketing fluff, no superlatives,
+no "this iconic landmark" cliches. Lead with what's actually distinctive
+about the place. If you don't recognize a place, write something that's
+true of places of that kind in that context.
+
+Output ONLY the JSON array, no prose."""
+
+
+async def describe_places(items: list[dict[str, str]]) -> list[str]:
+    """Generate a one-sentence blurb per place. Returns same length as items."""
+    if not items:
+        return []
+    msg = await _client().messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=400 + 60 * len(items),
+        system=_DESC_SYS,
+        messages=[{"role": "user", "content": json.dumps(items, ensure_ascii=False)}],
+    )
+    text = "".join(b.text for b in msg.content if b.type == "text").strip()
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, list) and all(isinstance(x, str) for x in parsed):
+            # Trim to expected length defensively.
+            return [parsed[i] if i < len(parsed) else "" for i in range(len(items))]
+    except (ValueError, json.JSONDecodeError):
+        logger.warning("describe_places: model returned non-JSON: %s", text[:200])
+    return [""] * len(items)
+
+
 async def summarize_itinerary(
     stop_names: list[str], start_loc: str, transit_mode: str
 ) -> str:
