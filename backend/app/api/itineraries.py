@@ -99,6 +99,7 @@ async def _to_out(
     prev_pt: routing.GeoPoint | None = None
     for stop_row, place in ordered:
         leg_minutes: int | None = None
+        leg_meters: int | None = None
         steps: list[TravelStep] = []
         has_coords = place.latitude is not None and place.longitude is not None
 
@@ -106,6 +107,7 @@ async def _to_out(
             if route_legs is not None and leg_idx < len(route_legs):
                 leg = route_legs[leg_idx]
                 leg_minutes = max(1, round(leg["duration_sec"] / 60))
+                leg_meters = leg.get("distance_m")
                 steps = [TravelStep(**s) for s in leg.get("steps", [])]
                 leg_idx += 1
             else:
@@ -135,6 +137,7 @@ async def _to_out(
                 rating=place.rating,
                 description=place.description,
                 travel_minutes_from_prev=leg_minutes,
+                travel_meters_from_prev=leg_meters,
                 travel_steps_from_prev=steps,
             )
         )

@@ -7,6 +7,7 @@ import {
   computeSchedule,
   dwellMinutes,
   formatClock,
+  formatDistance,
   formatMinutes,
   photoSrc,
   type Alternative,
@@ -187,6 +188,16 @@ function StopCard({
         </div>
         {!rejected && stop.description && (
           <p className="mt-2 text-sm leading-snug text-ink/75">{stop.description}</p>
+        )}
+        {!rejected && (
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.name)}&query_place_id=${stop.place_id}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-block text-xs text-ink/50 hover:text-accent-dark hover:underline"
+          >
+            View on Google Maps →
+          </a>
         )}
         {change?.kind === "swap" && (
           <div className="mt-2 rounded-md border border-accent/40 bg-accent/10 px-2 py-1.5 text-sm">
@@ -383,6 +394,11 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
                     <div className="flex items-center gap-2 text-xs text-ink/50">
                       <span className="h-4 w-px bg-ink/20" />
                       <span>↓ {formatMinutes(s.travel_minutes_from_prev!)} {verb}</span>
+                      {s.travel_meters_from_prev != null && (
+                        <span className="text-ink/35">
+                          · {formatDistance(s.travel_meters_from_prev)}
+                        </span>
+                      )}
                     </div>
                     {s.travel_steps_from_prev.length > 1 && (
                       <div className="ml-3 flex flex-wrap gap-1">

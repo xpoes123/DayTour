@@ -134,6 +134,7 @@ export type Stop = {
   rating: number | null;
   description: string | null;
   travel_minutes_from_prev: number | null;
+  travel_meters_from_prev: number | null;
   travel_steps_from_prev: TravelStep[];
 };
 
@@ -156,6 +157,15 @@ export function formatMinutes(mins: number): string {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return m === 0 ? `${h} hr` : `${h} hr ${m} min`;
+}
+
+/** Format meters as a friendly "0.4 mi · 0.7 km" string. */
+export function formatDistance(meters: number): string {
+  const km = meters / 1000;
+  const mi = meters / 1609.344;
+  const km_s = km < 10 ? km.toFixed(1) : Math.round(km).toString();
+  const mi_s = mi < 10 ? mi.toFixed(1) : Math.round(mi).toString();
+  return `${mi_s} mi · ${km_s} km`;
 }
 
 /** Rough dwell time at a place based on its name. Tourists optimize ergonomics, not accuracy. */

@@ -67,6 +67,8 @@ class StopOut(BaseModel):
     description: str | None = None
     # Minutes to travel from the previous stop to this one (null for first).
     travel_minutes_from_prev: int | None = None
+    # Road-distance for that leg, in meters.
+    travel_meters_from_prev: int | None = None
     # For transit legs: the step breakdown (walk → ride → walk). For other
     # modes this is an empty list; the whole leg is the chosen transit mode.
     travel_steps_from_prev: list[TravelStep] = []
