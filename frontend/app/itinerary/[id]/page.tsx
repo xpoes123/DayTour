@@ -81,21 +81,22 @@ function AlternativesPicker({
     );
   }
   return (
-    <div className="mt-2 flex flex-col gap-1">
+    <div className="mt-2 flex flex-col gap-1.5">
       <div className="text-xs font-medium uppercase tracking-wide text-ink/50">
         {selected ? "Replacing with" : "Replace with"}
       </div>
-      <ul className="flex flex-col gap-1">
+      <ul className="flex flex-col gap-1.5">
         {alternatives.map((a) => {
           const isSelected = selected?.place_id === a.place_id;
           const isTaken = !isSelected && usedElsewhere.has(a.place_id);
+          const img = photoSrc(a.photo_url);
           return (
             <li key={a.place_id}>
               <button
                 type="button"
                 disabled={isTaken}
                 onClick={() => (isSelected ? onClear() : onPick(a))}
-                className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left text-sm transition ${
+                className={`flex w-full items-center gap-2 overflow-hidden rounded-md border p-1.5 text-left text-sm transition ${
                   isSelected
                     ? "border-accent bg-accent/10"
                     : isTaken
@@ -103,14 +104,35 @@ function AlternativesPicker({
                     : "border-ink/10 bg-white hover:border-accent/50 hover:bg-accent/5"
                 }`}
               >
-                <span aria-hidden className="text-xs">
+                {img ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={img}
+                    alt=""
+                    loading="lazy"
+                    className="h-10 w-10 flex-shrink-0 rounded object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <div className="h-10 w-10 flex-shrink-0 rounded bg-ink/5" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{a.name}</div>
+                  <div className="flex items-center gap-2 text-xs text-ink/60">
+                    {a.rating != null && <span>★ {a.rating.toFixed(1)}</span>}
+                    {isTaken && <span className="text-ink/40">used in another slot</span>}
+                  </div>
+                </div>
+                <span
+                  aria-hidden
+                  className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-sm ${
+                    isSelected ? "bg-accent text-white" : "bg-ink/5 text-ink/40"
+                  }`}
+                >
                   {isSelected ? "✓" : "+"}
                 </span>
-                <span className="flex-1 truncate">{a.name}</span>
-                {a.rating != null && (
-                  <span className="text-xs text-ink/50">★ {a.rating.toFixed(1)}</span>
-                )}
-                {isTaken && <span className="text-xs text-ink/40">used</span>}
               </button>
             </li>
           );
