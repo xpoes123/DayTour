@@ -83,8 +83,10 @@ def _parse_steps(leg_obj: dict[str, Any]) -> list[dict[str, Any]]:
         else:
             merged.append(dict(s))
 
-    # Drop walks under a minute — they're noise between transit transfers.
-    return [s for s in merged if not (s["mode"] == "walk" and s["duration_sec"] < 60)]
+    # Drop walks under 2 minutes — they're transfer noise (cross-platform
+    # subway swaps, exiting a station, etc.). The leg total still includes
+    # them; we just hide the chip so transit rows stay scannable.
+    return [s for s in merged if not (s["mode"] == "walk" and s["duration_sec"] < 120)]
 _CACHE_TTL = 60 * 60 * 6  # 6h — transit schedules drift
 
 
