@@ -23,6 +23,7 @@ import { AISparkleIcon } from "@/components/ai-sparkle";
 import { ItineraryMap } from "@/components/itinerary-map";
 import { LoadingScreen } from "@/components/loading-screen";
 import { NearbyRestaurants } from "@/components/nearby-restaurants";
+import { StopNotes } from "@/components/stop-notes";
 import { TripActions } from "@/components/trip-actions";
 import { HourChip, WeatherBanner, useWeather } from "@/components/weather-banner";
 
@@ -165,6 +166,11 @@ function StopCard({
         >
           View on Google Maps →
         </a>
+        <StopNotes
+          itineraryId={itineraryId}
+          placeId={stop.place_id}
+          notes={stop.notes}
+        />
         <NearbyRestaurants itineraryId={itineraryId} placeId={stop.place_id} />
       </div>
     </div>

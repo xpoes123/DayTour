@@ -85,6 +85,8 @@ class StopOut(BaseModel):
     # Weekly opening hours from Google. Null if not available (some place
     # types just don't have hours, e.g. a generic plaza).
     opening_hours: list[dict] | None = None
+    # User-authored note for this stop on this trip.
+    notes: str | None = None
     # Minutes to travel from the previous stop to this one (null for first).
     travel_minutes_from_prev: int | None = None
     # Road-distance for that leg, in meters.

@@ -269,6 +269,12 @@ export default function SharedItineraryPage({
                     >
                       View on Google Maps →
                     </a>
+                    {s.notes && (
+                      <div className="mt-2 rounded-md border border-ink/10 bg-amber-50/60 px-2.5 py-1.5 text-sm leading-snug text-ink/80">
+                        <span className="mr-1.5 inline-block align-middle text-xs">📝</span>
+                        {s.notes}
+                      </div>
+                    )}
                     <NearbyRestaurants itineraryId={data.id} placeId={s.place_id} />
                   </div>
                 </div>

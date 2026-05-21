@@ -269,6 +269,7 @@ async def _to_out(
                 rating=place.rating,
                 description=place.description,
                 opening_hours=place.opening_hours,
+                notes=stop_row.notes,
                 travel_minutes_from_prev=leg_minutes,
                 travel_meters_from_prev=leg_meters,
                 travel_steps_from_prev=steps,
@@ -547,6 +548,37 @@ async def summarize(
     itin.summary = text
     await db.commit()
     return {"summary": text}
+
+
+@router.patch("/{itinerary_id}/stops/{place_id}/notes")
+async def update_stop_notes(
+    itinerary_id: int,
+    place_id: str,
+    body: dict,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Save a free-form note on a specific stop in an itinerary."""
+    note_text: str | None = (body or {}).get("notes")
+    if note_text is not None:
+        note_text = note_text.strip()[:1024] or None
+
+    place = (
+        await db.execute(select(Place).where(Place.google_place_id == place_id))
+    ).scalar_one_or_none()
+    if not place:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "place not found")
+    stop = (
+        await db.execute(
+            select(Stop).where(
+                Stop.itinerary_id == itinerary_id, Stop.place_id == place.id
+            )
+        )
+    ).scalar_one_or_none()
+    if not stop:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "stop not in itinerary")
+    stop.notes = note_text
+    await db.commit()
+    return {"notes": stop.notes}
 
 
 @router.get("/{itinerary_id}/stops/{place_id}/restaurants", response_model=list[RestaurantOut])

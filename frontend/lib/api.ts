@@ -63,6 +63,8 @@ export const api = {
   get: <T = unknown>(path: string) => request<T>(path),
   post: <T = unknown>(path: string, body: unknown) =>
     request<T>(path, { method: "POST", body: JSON.stringify(body) }),
+  patch: <T = unknown>(path: string, body: unknown) =>
+    request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
 };
 
 export type PlaceSuggestion = {
@@ -158,6 +160,7 @@ export type Stop = {
   rating: number | null;
   description: string | null;
   opening_hours: OpeningPeriod[] | null;
+  notes: string | null;
   travel_minutes_from_prev: number | null;
   travel_meters_from_prev: number | null;
   travel_steps_from_prev: TravelStep[];
