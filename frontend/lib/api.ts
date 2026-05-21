@@ -157,7 +157,9 @@ export type Stop = {
   latitude: number | null;
   longitude: number | null;
   photo_url: string | null;
+  photo_count: number;
   rating: number | null;
+  top_review: string | null;
   description: string | null;
   opening_hours: OpeningPeriod[] | null;
   notes: string | null;

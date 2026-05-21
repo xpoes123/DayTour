@@ -75,7 +75,8 @@ async def search_text(text_query: str) -> dict[str, Any] | None:
             "X-Goog-Api-Key": _settings.google_places_api_key,
             "X-Goog-FieldMask": (
                 "places.displayName,places.id,places.location,places.photos,"
-                "places.rating,places.regularOpeningHours.periods"
+                "places.rating,places.regularOpeningHours.periods,"
+                "places.reviews.text,places.reviews.rating"
             ),
             "Content-Type": "application/json",
         }
@@ -87,14 +88,26 @@ async def search_text(text_query: str) -> dict[str, Any] | None:
             return None
         p = data["places"][0]
         photos = p.get("photos") or []
+        photo_names = [ph["name"] for ph in photos[:5]]
         hours = (p.get("regularOpeningHours") or {}).get("periods")
+        top_review = None
+        for rv in p.get("reviews") or []:
+            t = ((rv.get("text") or {}).get("text") or "").strip()
+            if t and len(t) >= 20 and (rv.get("rating") or 0) >= 4:
+                if len(t) > 280:
+                    top_review = t[:280].rsplit(" ", 1)[0].rstrip(",.;:") + "…"
+                else:
+                    top_review = t
+                break
         return {
             "place_id": p["id"],
             "name": p["displayName"]["text"],
             "lat": p["location"]["latitude"],
             "lon": p["location"]["longitude"],
             "rating": p.get("rating"),
-            "photo_name": photos[0]["name"] if photos else None,
+            "photo_name": photo_names[0] if photo_names else None,
+            "photos": photo_names,
+            "top_review": top_review,
             "opening_hours": hours,
         }
 
@@ -298,7 +311,8 @@ async def nearby_attractions(
             "X-Goog-FieldMask": (
                 "places.id,places.displayName,places.location,places.photos,"
                 "places.rating,places.primaryType,places.types,"
-                "places.regularOpeningHours.periods"
+                "places.regularOpeningHours.periods,"
+                "places.reviews.text,places.reviews.rating"
             ),
             "Content-Type": "application/json",
         }
@@ -318,14 +332,28 @@ async def nearby_attractions(
         out = []
         for p in data.get("places", []):
             photos = p.get("photos") or []
+            photo_names = [ph["name"] for ph in photos[:5]]
             hours = (p.get("regularOpeningHours") or {}).get("periods")
+            top_review = None
+            for rv in p.get("reviews") or []:
+                t = ((rv.get("text") or {}).get("text") or "").strip()
+                if t and len(t) >= 20 and (rv.get("rating") or 0) >= 4:
+                    # Trim to ~280 chars on a word boundary.
+                    if len(t) > 280:
+                        cut = t[:280].rsplit(" ", 1)[0].rstrip(",.;:") + "…"
+                        top_review = cut
+                    else:
+                        top_review = t
+                    break
             out.append({
                 "place_id": p["id"],
                 "name": p["displayName"]["text"],
                 "lat": p["location"]["latitude"],
                 "lon": p["location"]["longitude"],
                 "rating": p.get("rating"),
-                "photo_name": photos[0]["name"] if photos else None,
+                "photo_name": photo_names[0] if photo_names else None,
+                "photos": photo_names,
+                "top_review": top_review,
                 "primary_type": p.get("primaryType"),
                 "types": p.get("types") or [],
                 "opening_hours": hours,

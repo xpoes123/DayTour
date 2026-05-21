@@ -79,7 +79,12 @@ class StopOut(BaseModel):
     latitude: float | None
     longitude: float | None
     photo_url: str | None
+    # Number of photos available via /api/places/{id}/photo?idx=N. Lets the
+    # carousel know how many slides to render without fetching each one.
+    photo_count: int = 1
     rating: float | None
+    # Trimmed top-rated Google review snippet.
+    top_review: str | None = None
     # AI-written one-sentence description, persisted on Place.
     description: str | None = None
     # Weekly opening hours from Google. Null if not available (some place

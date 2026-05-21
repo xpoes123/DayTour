@@ -20,6 +20,7 @@ import { AISparkleIcon } from "@/components/ai-sparkle";
 import { ItineraryMap } from "@/components/itinerary-map";
 import { LoadingScreen } from "@/components/loading-screen";
 import { NearbyRestaurants } from "@/components/nearby-restaurants";
+import { PhotoCarousel } from "@/components/photo-carousel";
 import { TripActions } from "@/components/trip-actions";
 import { HourChip, WeatherBanner, useWeather } from "@/components/weather-banner";
 
@@ -155,7 +156,7 @@ export default function SharedItineraryPage({
       <div className="grid gap-6 md:grid-cols-[1fr_2fr]">
         <ol className="flex flex-col gap-0">
           {data.stops.map((s, idx) => {
-            const img = photoSrc(s.photo_url);
+            const photoBase = photoSrc(`/api/places/${s.place_id}/photo`);
             const sched = schedule[idx];
             return (
               <li key={`${s.place_id}-${idx}`}>
@@ -192,17 +193,8 @@ export default function SharedItineraryPage({
                   </div>
                 )}
                 <div className="overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm">
-                  {img && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={img}
-                      alt=""
-                      loading="lazy"
-                      className="h-32 w-full object-cover"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.display = "none";
-                      }}
-                    />
+                  {photoBase && s.photo_count > 0 && (
+                    <PhotoCarousel basePath={photoBase} count={s.photo_count} />
                   )}
                   <div className="p-3">
                     <div className="flex items-baseline justify-between gap-2">
@@ -260,6 +252,12 @@ export default function SharedItineraryPage({
                     {s.description &&
                       !(idx === 0 || (data.end_loc && idx === data.stops.length - 1)) && (
                       <p className="mt-2 text-sm leading-snug text-ink/75">{s.description}</p>
+                    )}
+                    {s.top_review &&
+                      !(idx === 0 || (data.end_loc && idx === data.stops.length - 1)) && (
+                      <blockquote className="mt-2 border-l-2 border-ink/15 pl-2 text-xs italic leading-snug text-ink/60">
+                        “{s.top_review}”
+                      </blockquote>
                     )}
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.name)}&query_place_id=${s.place_id}`}

@@ -23,6 +23,7 @@ import { AISparkleIcon } from "@/components/ai-sparkle";
 import { ItineraryMap } from "@/components/itinerary-map";
 import { LoadingScreen } from "@/components/loading-screen";
 import { NearbyRestaurants } from "@/components/nearby-restaurants";
+import { PhotoCarousel } from "@/components/photo-carousel";
 import { StopNotes } from "@/components/stop-notes";
 import { TripActions } from "@/components/trip-actions";
 import { HourChip, WeatherBanner, useWeather } from "@/components/weather-banner";
@@ -82,20 +83,11 @@ function StopCard({
   canRemove: boolean;
   isEndpoint: boolean;
 }) {
-  const img = photoSrc(stop.photo_url);
+  const photoBase = photoSrc(`/api/places/${stop.place_id}/photo`);
   return (
     <div className="relative overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm">
-      {img && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={img}
-          alt=""
-          loading="lazy"
-          className="h-32 w-full object-cover"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
+      {photoBase && stop.photo_count > 0 && (
+        <PhotoCarousel basePath={photoBase} count={stop.photo_count} />
       )}
       <div className="relative p-3 pr-10">
         <button
@@ -157,6 +149,11 @@ function StopCard({
         })()}
         {stop.description && !isEndpoint && (
           <p className="mt-2 text-sm leading-snug text-ink/75">{stop.description}</p>
+        )}
+        {stop.top_review && !isEndpoint && (
+          <blockquote className="mt-2 border-l-2 border-ink/15 pl-2 text-xs italic leading-snug text-ink/60">
+            “{stop.top_review}”
+          </blockquote>
         )}
         <a
           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.name)}&query_place_id=${stop.place_id}`}

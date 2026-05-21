@@ -25,21 +25,30 @@ async def photo(
     google_place_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     max_width: Annotated[int, Query(ge=80, le=1600, alias="max")] = 480,
+    idx: Annotated[int, Query(ge=0, le=9)] = 0,
 ):
-    """Proxy the first Google Places photo for a given place_id.
+    """Proxy a Google Places photo for a given place_id.
 
-    The Place's stored photo_url is actually the photo resource name
-    (e.g. 'places/CHIJ.../photos/Ab43m-...'). We materialize the bytes
-    via Google's media endpoint so the API key never leaves the server.
+    `idx` selects which photo from the Place's photos[] list (0-indexed).
+    Falls back to photo_url when photos[] is null or idx=0 isn't populated.
     """
     place = (
         await db.execute(select(Place).where(Place.google_place_id == google_place_id))
     ).scalar_one_or_none()
-    if not place or not place.photo_url:
+    if not place:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no place")
+
+    # Pick the requested photo name.
+    name: str | None = None
+    if place.photos and idx < len(place.photos):
+        name = place.photos[idx]
+    elif idx == 0:
+        name = place.photo_url
+    if not name:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no photo")
 
     api_key = get_settings().google_places_api_key
-    url = f"https://places.googleapis.com/v1/{place.photo_url}/media"
+    url = f"https://places.googleapis.com/v1/{name}/media"
     params = {"maxWidthPx": max_width, "key": api_key, "skipHttpRedirect": "true"}
     async with httpx.AsyncClient(timeout=10) as client:
         meta = await client.get(url, params=params)

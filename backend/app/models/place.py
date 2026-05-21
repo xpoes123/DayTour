@@ -16,6 +16,13 @@ class Place(Base):
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     address: Mapped[str | None] = mapped_column(String(512), nullable=True)
     photo_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    # Full list of Google photo resource names. photo_url stays as the
+    # first one for back-compat (it's referenced in indexes and shorthand
+    # accesses); photos[] feeds the carousel.
+    photos: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    # One short top-review quote (already trimmed). Renders under the
+    # stop name as social proof.
+    top_review: Mapped[str | None] = mapped_column(String(500), nullable=True)
     rating: Mapped[float | None] = mapped_column(Float, nullable=True)
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
     # Google Places regularOpeningHours.periods: list of weekly periods,
