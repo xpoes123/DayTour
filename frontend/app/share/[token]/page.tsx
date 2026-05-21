@@ -210,7 +210,9 @@ export default function SharedItineraryPage({
             );
           })}
         </ol>
-        <ItineraryMap stops={data.stops} routeGeometry={data.route_geometry} />
+        <div className="md:sticky md:top-6 md:self-start">
+          <ItineraryMap stops={data.stops} routeGeometry={data.route_geometry} />
+        </div>
       </div>
 
       <div className="mt-8 rounded-lg border border-ink/10 bg-paper p-4 text-sm text-ink/70">

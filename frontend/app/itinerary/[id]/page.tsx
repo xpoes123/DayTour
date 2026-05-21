@@ -475,7 +475,9 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
             );
           })}
         </ol>
-        <ItineraryMap stops={visibleStops} routeGeometry={data.route_geometry} />
+        <div className="md:sticky md:top-6 md:self-start">
+          <ItineraryMap stops={visibleStops} routeGeometry={data.route_geometry} />
+        </div>
       </div>
 
       {changes.size > 0 && (
