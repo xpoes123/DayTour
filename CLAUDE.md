@@ -31,8 +31,8 @@ Python 3.12+, async SQLAlchemy 2.0, `pydantic-settings`, pytest.
 
 ## URLs
 
-- `/` — landing with logo, dual CTAs, featured example trip pulled from `xYWdodN2Fy8`, three value pillars
-- `/plan` — form-based planner (autocomplete on starting location, radius slider in m + mi, stops slider, transit mode)
+- `/` — landing with logo, three CTAs (Plan / Describe / Surprise me), featured example trip, value pillars
+- `/plan` — form-based planner: start + optional end autocomplete, date + start_time, radius slider in m + mi, stops slider, vibe chips, transit mode icon buttons
 - `/plan/prompt` — natural-language planner ("a chill walking day in Madison with art and lakefront")
 - `/auth` — combined sign-in / register
 - `/itinerary/[id]` — owner view (curation, recompute, swaps)
@@ -60,10 +60,26 @@ itinerary GET                 GET /api/itineraries/{id}  (or /by-share/{token})
       place.description       Claude Sonnet, ~20 words each, batched
       (cached per-Place so repeat trips reuse them)
 
-curation                      X a stop → /alternatives lazy-loads nearby attractions
-                              pick a swap → confirm → POST /recompute (kept_place_ids: [...])
-                              backend re-runs 2-opt on the kept set, replaces Stop rows
+curation                      X a stop → removed immediately, route recomputes
+                              "You might also like" panel below → click + → adds + recomputes
+                              Drag the grip handle to reorder → POST /reorder (skips 2-opt)
+                              "Lock my order" toggle: when on, add/remove also use /reorder
 ```
+
+## Plan-time filters
+
+When PlanRequest carries `date` and/or `start_time`, the backend stacks
+filters on top of the Google Places result pool:
+- **Vibe** (foodie / art / family / outdoors / nightlife / hidden_gems) shapes
+  the included + excluded type lists in `_VIBE_TYPES`. Default to nightlife
+  when `start_time >= 17:00` and no vibe is set.
+- **Rainy day**: precip ≥50% (or ≥30% on a wet weather_code) drops outdoor
+  candidates by type + name keyword.
+- **Closed all day**: drops candidates whose `opening_hours` have no period
+  on the trip weekday.
+- **Closed at the assigned slot**: post-2-opt walk through stops, estimate
+  visit minute (start + position × per-mode constant), drop any whose hours
+  don't cover that minute.
 
 ## API surface
 
@@ -72,16 +88,20 @@ POST  /api/auth/register
 POST  /api/auth/login
 GET   /api/auth/me
 
-POST  /api/itineraries                                  build a new trip
-POST  /api/itineraries/from-prompt                      Claude Haiku translates prose → PlanRequest
-GET   /api/itineraries/{id}                             owner view; lazy-generates summary + place descriptions
-GET   /api/itineraries/by-share/{token}                 public read-only
-POST  /api/itineraries/{id}/recompute                   { kept_place_ids: [...] } — rebuild + re-route
-GET   /api/itineraries/{id}/alternatives                nearby attractions excluding current stops
-GET   /api/itineraries/{id}/stops/{place_id}/restaurants  4 nearest restaurants, persisted to Place
+POST  /api/itineraries                                            build a new trip
+POST  /api/itineraries/from-prompt                                Claude Haiku translates prose → PlanRequest
+GET   /api/itineraries/{id}                                       owner view
+GET   /api/itineraries/by-share/{token}                           public read-only
+POST  /api/itineraries/{id}/recompute                             { kept_place_ids: [...] } — 2-opt re-route
+POST  /api/itineraries/{id}/reorder                               { kept_place_ids: [...] } — keep order, just re-route
+POST  /api/itineraries/{id}/summarize                             generate + persist AI summary on demand
+GET   /api/itineraries/{id}/alternatives                          nearby attractions excluding current stops
+GET   /api/itineraries/{id}/stops/{place_id}/restaurants          4 nearest restaurants, persisted to Place
+PATCH /api/itineraries/{id}/stops/{place_id}/notes                { notes: str|null } — user-authored note
 
-GET   /api/places/autocomplete?q=...                    Google Places Autocomplete proxy
-GET   /api/places/{google_place_id}/photo?max=480       proxies a Place photo so the API key stays server-side
+GET   /api/places/autocomplete?q=...                              Google Places Autocomplete proxy
+GET   /api/places/{google_place_id}/photo?max=480&idx=0           proxies the Nth Place photo (server-side key)
+GET   /api/weather?lat=&lon=&date=                                Open-Meteo daily + hourly forecast
 ```
 
 ## Repo layout
