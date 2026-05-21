@@ -73,7 +73,10 @@ async def search_text(text_query: str) -> dict[str, Any] | None:
         url = "https://places.googleapis.com/v1/places:searchText"
         headers = {
             "X-Goog-Api-Key": _settings.google_places_api_key,
-            "X-Goog-FieldMask": "places.displayName,places.id,places.location,places.photos,places.rating",
+            "X-Goog-FieldMask": (
+                "places.displayName,places.id,places.location,places.photos,"
+                "places.rating,places.regularOpeningHours.periods"
+            ),
             "Content-Type": "application/json",
         }
         async with httpx.AsyncClient(timeout=10) as client:
@@ -84,6 +87,7 @@ async def search_text(text_query: str) -> dict[str, Any] | None:
             return None
         p = data["places"][0]
         photos = p.get("photos") or []
+        hours = (p.get("regularOpeningHours") or {}).get("periods")
         return {
             "place_id": p["id"],
             "name": p["displayName"]["text"],
@@ -91,6 +95,7 @@ async def search_text(text_query: str) -> dict[str, Any] | None:
             "lon": p["location"]["longitude"],
             "rating": p.get("rating"),
             "photo_name": photos[0]["name"] if photos else None,
+            "opening_hours": hours,
         }
 
     return await _cached_or_call("searchText", {"q": text_query}, fetch)
@@ -247,7 +252,8 @@ async def nearby_attractions(
             "X-Goog-Api-Key": _settings.google_places_api_key,
             "X-Goog-FieldMask": (
                 "places.id,places.displayName,places.location,places.photos,"
-                "places.rating,places.primaryType,places.types"
+                "places.rating,places.primaryType,places.types,"
+                "places.regularOpeningHours.periods"
             ),
             "Content-Type": "application/json",
         }
@@ -269,6 +275,7 @@ async def nearby_attractions(
         out = []
         for p in data.get("places", []):
             photos = p.get("photos") or []
+            hours = (p.get("regularOpeningHours") or {}).get("periods")
             out.append({
                 "place_id": p["id"],
                 "name": p["displayName"]["text"],
@@ -278,6 +285,7 @@ async def nearby_attractions(
                 "photo_name": photos[0]["name"] if photos else None,
                 "primary_type": p.get("primaryType"),
                 "types": p.get("types") or [],
+                "opening_hours": hours,
             })
         return out[:max_results]
 

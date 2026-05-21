@@ -8,6 +8,7 @@ import {
   api,
   computeSchedule,
   dwellMinutes,
+  evaluateOpenAt,
   formatClock,
   formatDistance,
   formatMinutes,
@@ -230,6 +231,32 @@ export default function SharedItineraryPage({
                         </span>
                       )}
                     </div>
+                    {sched && s.opening_hours && (() => {
+                      const arr = evaluateOpenAt(s.opening_hours, sched.arrival);
+                      const dep = evaluateOpenAt(s.opening_hours, sched.depart);
+                      if (arr.open && dep.open) {
+                        const closes = arr.closesAt ?? dep.closesAt;
+                        return closes ? (
+                          <div className="mt-1 text-xs text-emerald-700">
+                            Open until {formatClock(closes)}
+                          </div>
+                        ) : null;
+                      }
+                      if (!arr.open && !dep.open) {
+                        return (
+                          <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                            Closed during this window
+                            {arr.opensAt && <> · opens {formatClock(arr.opensAt)}</>}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">
+                          Closes during your visit
+                          {arr.closesAt && <> at {formatClock(arr.closesAt)}</>}
+                        </div>
+                      );
+                    })()}
                     {s.description &&
                       !(idx === 0 || (data.end_loc && idx === data.stops.length - 1)) && (
                       <p className="mt-2 text-sm leading-snug text-ink/75">{s.description}</p>

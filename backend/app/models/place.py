@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, Integer, String, func
+from sqlalchemy import JSON, DateTime, Float, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -18,6 +18,10 @@ class Place(Base):
     photo_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     rating: Mapped[float | None] = mapped_column(Float, nullable=True)
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Google Places regularOpeningHours.periods: list of weekly periods,
+    # each {open: {day, hour, minute}, close: {day, hour, minute}}.
+    # day is 0=Sunday..6=Saturday per Google's convention.
+    opening_hours: Mapped[list | None] = mapped_column(JSON, nullable=True)
     price_level: Mapped[int | None] = mapped_column(Integer, nullable=True)
     num_visits: Mapped[int] = mapped_column(Integer, default=0)
     refreshed_at: Mapped[datetime] = mapped_column(

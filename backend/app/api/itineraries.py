@@ -106,6 +106,8 @@ async def _upsert_place(db: AsyncSession, data: dict) -> Place:
         existing.num_visits += 1
         if not existing.photo_url and data.get("photo_name"):
             existing.photo_url = data["photo_name"]
+        if not existing.opening_hours and data.get("opening_hours"):
+            existing.opening_hours = data["opening_hours"]
         return existing
     p = Place(
         google_place_id=data["place_id"],
@@ -117,6 +119,7 @@ async def _upsert_place(db: AsyncSession, data: dict) -> Place:
         # 'places/CHIJ.../photos/Ab43m-...'); the frontend hits our
         # /places/{place_id}/photo proxy to materialize it as bytes.
         photo_url=data.get("photo_name"),
+        opening_hours=data.get("opening_hours"),
         num_visits=1,
     )
     db.add(p)
@@ -196,6 +199,7 @@ async def _to_out(
                 photo_url=_photo_url(place),
                 rating=place.rating,
                 description=place.description,
+                opening_hours=place.opening_hours,
                 travel_minutes_from_prev=leg_minutes,
                 travel_meters_from_prev=leg_meters,
                 travel_steps_from_prev=steps,

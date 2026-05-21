@@ -8,6 +8,7 @@ import {
   api,
   computeSchedule,
   dwellMinutes,
+  evaluateOpenAt,
   formatClock,
   formatDistance,
   formatMinutes,
@@ -124,6 +125,35 @@ function StopCard({
             <span className="text-ink/40">· ~{dwellMinutes(stop.name)} min here</span>
           )}
         </div>
+        {schedule && stop.opening_hours && (() => {
+          const arr = evaluateOpenAt(stop.opening_hours, schedule.arrival);
+          const dep = evaluateOpenAt(stop.opening_hours, schedule.depart);
+          if (arr.open && dep.open) {
+            const closes = arr.closesAt ?? dep.closesAt;
+            return closes ? (
+              <div className="mt-1 text-xs text-emerald-700">
+                Open until {formatClock(closes)}
+              </div>
+            ) : (
+              <div className="mt-1 text-xs text-emerald-700">Open all day</div>
+            );
+          }
+          if (!arr.open && !dep.open) {
+            return (
+              <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                Closed during this window
+                {arr.opensAt && <> · opens {formatClock(arr.opensAt)}</>}
+              </div>
+            );
+          }
+          // Mixed (open at arrival but closes mid-visit, or opens mid-visit).
+          return (
+            <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">
+              Closes during your visit
+              {arr.closesAt && <> at {formatClock(arr.closesAt)}</>}
+            </div>
+          );
+        })()}
         {stop.description && !isEndpoint && (
           <p className="mt-2 text-sm leading-snug text-ink/75">{stop.description}</p>
         )}

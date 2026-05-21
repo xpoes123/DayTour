@@ -156,10 +156,61 @@ export type Stop = {
   photo_url: string | null;
   rating: number | null;
   description: string | null;
+  opening_hours: OpeningPeriod[] | null;
   travel_minutes_from_prev: number | null;
   travel_meters_from_prev: number | null;
   travel_steps_from_prev: TravelStep[];
 };
+
+export type OpeningPeriod = {
+  open: { day: number; hour: number; minute?: number };
+  close?: { day: number; hour: number; minute?: number };
+};
+
+/** Returns `{open, closesAt}` evaluated against a given Date. */
+export function evaluateOpenAt(
+  periods: OpeningPeriod[] | null | undefined,
+  at: Date,
+): { open: boolean; closesAt: Date | null; opensAt: Date | null } {
+  if (!periods || periods.length === 0) {
+    return { open: true, closesAt: null, opensAt: null }; // unknown → assume open
+  }
+  const day = at.getDay(); // 0=Sun
+  const minutesNow = at.getHours() * 60 + at.getMinutes();
+  let nextOpen: Date | null = null;
+
+  for (const p of periods) {
+    if (!p.close) {
+      // No close → "always open" indicator from Google.
+      return { open: true, closesAt: null, opensAt: null };
+    }
+    const openDay = p.open.day;
+    const closeDay = p.close.day;
+    const openMin = p.open.hour * 60 + (p.open.minute ?? 0);
+    const closeMin = p.close.hour * 60 + (p.close.minute ?? 0);
+    // Period applies today if it starts today, or it started yesterday and
+    // crosses midnight into today.
+    if (openDay === day && (closeDay === day || closeDay === (day + 1) % 7)) {
+      if (minutesNow >= openMin && (closeDay === day ? minutesNow < closeMin : true)) {
+        const cd = new Date(at);
+        cd.setHours(p.close.hour, p.close.minute ?? 0, 0, 0);
+        if (closeDay !== day) cd.setDate(cd.getDate() + 1);
+        return { open: true, closesAt: cd, opensAt: null };
+      }
+    } else if (openDay === (day - 1 + 7) % 7 && closeDay === day && minutesNow < closeMin) {
+      const cd = new Date(at);
+      cd.setHours(p.close.hour, p.close.minute ?? 0, 0, 0);
+      return { open: true, closesAt: cd, opensAt: null };
+    }
+    // Track upcoming opens for today to surface "opens at"
+    if (openDay === day && minutesNow < openMin) {
+      const od = new Date(at);
+      od.setHours(p.open.hour, p.open.minute ?? 0, 0, 0);
+      if (!nextOpen || od < nextOpen) nextOpen = od;
+    }
+  }
+  return { open: false, closesAt: null, opensAt: nextOpen };
+}
 
 export type Itinerary = {
   id: number;
