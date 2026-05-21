@@ -192,19 +192,19 @@ async def nearby_restaurants(
 
 
 # Broader pool than just tourist_attraction so the results aren't dominated
-# by generic parks. Each entry contributes to the search OR set.
+# by generic parks, but narrow enough that everything is somewhere a person
+# could just drop in during the day. Skip event venues (theaters, concert
+# halls, cultural centers, amusement parks) — those need a ticket and a
+# scheduled show, not casual visiting.
 _ATTRACTION_TYPES = [
     "tourist_attraction",
     "museum",
     "art_gallery",
     "historical_landmark",
     "monument",
-    "performing_arts_theater",
-    "cultural_center",
     "aquarium",
     "zoo",
     "observation_deck",
-    "amusement_park",
     "plaza",
     "sculpture",
 ]
