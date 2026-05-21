@@ -69,6 +69,34 @@ def _path_length(order: list[int], dm: list[list[float]]) -> float:
     return total
 
 
+def two_opt_linear(order: list[int], dm: list[list[float]], max_iter: int = 1000) -> list[int]:
+    """2-opt that keeps the first AND last indices fixed (no loop close).
+
+    Swaps inner edges only — used when the trip has a separate start and
+    end location and shouldn't return to the origin.
+    """
+    n = len(order)
+    if n < 4:
+        return order
+    improved = True
+    it = 0
+    while improved and it < max_iter:
+        improved = False
+        for i in range(1, n - 2):
+            for j in range(i + 1, n - 1):
+                delta = (
+                    -dm[order[i - 1]][order[i]]
+                    - dm[order[j]][order[j + 1]]
+                    + dm[order[i - 1]][order[j]]
+                    + dm[order[i]][order[j + 1]]
+                )
+                if delta < -1e-12:
+                    order[i : j + 1] = list(reversed(order[i : j + 1]))
+                    improved = True
+        it += 1
+    return order
+
+
 def two_opt(order: list[int], dm: list[list[float]], max_iter: int = 1000) -> list[int]:
     n = len(order)
     improved = True
@@ -90,19 +118,28 @@ def two_opt(order: list[int], dm: list[list[float]], max_iter: int = 1000) -> li
     return order
 
 
-def best_path(points: Sequence[GeoPoint]) -> list[str]:
-    """Return place_ids ordered to minimize closed-loop distance.
+def best_path(points: Sequence[GeoPoint], fix_end: bool = False) -> list[str]:
+    """Return place_ids ordered for a good trip.
 
-    The first point is treated as the anchor (start = end of the loop).
+    When `fix_end` is False (default), the first point is the anchor and the
+    output is a closed loop with the anchor at both start and end.
+
+    When `fix_end` is True, the FIRST point is the start, the LAST point is
+    the end, and 2-opt only re-orders the middle stops. The output is linear
+    (no loop close).
     """
     if len(points) <= 1:
         return [p.place_id for p in points]
 
     dm = build_distance_matrix(points)
     initial = list(range(len(points)))
-    ordered = two_opt(initial, dm)
 
-    # Rotate so the anchor (index 0) is first.
+    if fix_end:
+        ordered = two_opt_linear(initial, dm)
+        return [points[i].place_id for i in ordered]
+
+    ordered = two_opt(initial, dm)
+    # Rotate so the anchor (index 0) is first; close the loop.
     anchor = ordered.index(0)
     rotated = ordered[anchor:] + ordered[:anchor]
     rotated.append(rotated[0])

@@ -15,6 +15,7 @@ class Itinerary(Base):
     )
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     start_loc: Mapped[str] = mapped_column(String(255))
+    end_loc: Mapped[str | None] = mapped_column(String(255), nullable=True)
     radius_m: Mapped[int] = mapped_column(Integer)
     transit_mode: Mapped[str] = mapped_column(String(16), default="walking")
     share_token: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)

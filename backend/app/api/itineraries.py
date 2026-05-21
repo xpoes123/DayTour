@@ -231,6 +231,7 @@ async def _to_out(
         id=itinerary.id,
         title=itinerary.title,
         start_loc=itinerary.start_loc,
+        end_loc=itinerary.end_loc,
         radius_m=itinerary.radius_m,
         transit_mode=mode,  # type: ignore[arg-type]
         share_token=itinerary.share_token,
@@ -251,6 +252,14 @@ async def create_itinerary(
     start = await places.search_text(body.start_loc)
     if not start:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Start location not found")
+
+    end = None
+    if body.end_loc and body.end_loc.strip():
+        end = await places.search_text(body.end_loc)
+        if not end:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "End location not found")
+        if end["place_id"] == start["place_id"]:
+            end = None  # same point as start → fall back to loop behavior
 
     # If the user named a date and the forecast looks wet, pull a wider pool
     # so we have room to drop outdoor-ish stops without ending up too short.
@@ -280,6 +289,7 @@ async def create_itinerary(
     itinerary = Itinerary(
         user_id=user.id if user else None,
         start_loc=body.start_loc,
+        end_loc=body.end_loc if end else None,
         radius_m=body.radius_m,
         transit_mode=body.transit_mode,
         share_token=uuid.uuid4().hex,
@@ -287,24 +297,34 @@ async def create_itinerary(
     db.add(itinerary)
     await db.flush()
 
-    # Deduplicate by place_id — Google Places' searchNearby occasionally
-    # returns the start location itself among nearby results, which produces
-    # a stop visited twice and breaks downstream routing (Google Routes
-    # rejects legs where origin == destination).
+    # Deduplicate by place_id, then place start first and (if present) end
+    # last so routing.best_path with fix_end keeps them as the bookends.
     seen_ids: set[str] = set()
     candidates: list[dict] = []
+    middle: list[dict] = []
     for c in [start, *nearby]:
         if c["place_id"] in seen_ids:
             continue
+        if end and c["place_id"] == end["place_id"]:
+            continue
         seen_ids.add(c["place_id"])
-        candidates.append(c)
+        if c["place_id"] == start["place_id"]:
+            candidates.append(c)
+        else:
+            middle.append(c)
+    candidates.extend(middle)
+    if end:
+        candidates.append(end)
+        seen_ids.add(end["place_id"])
 
     geo_points = [
         routing.GeoPoint(place_id=c["place_id"], lat=c["lat"], lon=c["lon"]) for c in candidates
     ]
-    ordered_ids = routing.best_path(geo_points)
-    # Drop the loop-close duplicate when persisting stops.
-    ordered_ids_unique = ordered_ids[:-1] if ordered_ids[0] == ordered_ids[-1] else ordered_ids
+    ordered_ids = routing.best_path(geo_points, fix_end=end is not None)
+    # When looping (no fixed end), strip the duplicate loop-close anchor.
+    ordered_ids_unique = (
+        ordered_ids[:-1] if ordered_ids[0] == ordered_ids[-1] else ordered_ids
+    )
     by_id = {c["place_id"]: c for c in candidates}
 
     stops_with_places: list[tuple[Stop, Place]] = []

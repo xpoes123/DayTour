@@ -165,6 +165,7 @@ export type Itinerary = {
   id: number;
   title: string | null;
   start_loc: string;
+  end_loc: string | null;
   radius_m: number;
   transit_mode: "walking" | "driving" | "bicycling" | "transit";
   share_token: string | null;

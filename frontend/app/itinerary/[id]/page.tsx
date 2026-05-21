@@ -396,7 +396,11 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
           ))}
         </ol>
         <div className="md:sticky md:top-6 md:self-start">
-          <ItineraryMap stops={data.stops} routeGeometry={data.route_geometry} />
+          <ItineraryMap
+            stops={data.stops}
+            routeGeometry={data.route_geometry}
+            closeLoop={!data.end_loc}
+          />
           {busy && (
             <div className="mt-2 text-center text-xs text-ink/50">
               Recalculating route…

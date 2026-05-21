@@ -249,7 +249,11 @@ export default function SharedItineraryPage({
           })}
         </ol>
         <div className="md:sticky md:top-6 md:self-start">
-          <ItineraryMap stops={data.stops} routeGeometry={data.route_geometry} />
+          <ItineraryMap
+            stops={data.stops}
+            routeGeometry={data.route_geometry}
+            closeLoop={!data.end_loc}
+          />
         </div>
       </div>
 

@@ -32,9 +32,11 @@ function FitBounds({ points }: { points: [number, number][] }) {
 export default function ItineraryMapInner({
   stops,
   routeGeometry,
+  closeLoop,
 }: {
   stops: Stop[];
   routeGeometry: [number, number][] | null;
+  closeLoop: boolean;
 }) {
   const points = useMemo<[number, number][]>(
     () =>
@@ -67,6 +69,17 @@ export default function ItineraryMapInner({
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <Polyline positions={linePoints} pathOptions={{ color: "#5DADE2", weight: 4 }} />
+      {closeLoop && points.length > 1 && (
+        <Polyline
+          positions={[points[points.length - 1], points[0]]}
+          pathOptions={{
+            color: "#5DADE2",
+            weight: 3,
+            opacity: 0.6,
+            dashArray: "6 8",
+          }}
+        />
+      )}
       {stops.map((s, i) =>
         s.latitude != null && s.longitude != null ? (
           <Marker key={`${s.place_id}-${i}`} position={[s.latitude, s.longitude]} icon={numberedIcon(i + 1)}>

@@ -11,6 +11,8 @@ TransitMode = Literal["walking", "driving", "bicycling", "transit"]
 
 class PlanRequest(BaseModel):
     start_loc: str = Field(min_length=1, max_length=255)
+    # Optional explicit endpoint. When omitted, the trip loops back to start.
+    end_loc: str | None = Field(default=None, max_length=255)
     radius_m: int = Field(ge=200, le=50_000, default=4000)
     stop_count: int = Field(ge=2, le=10, default=5)
     transit_mode: TransitMode = "walking"
@@ -82,6 +84,7 @@ class ItineraryOut(BaseModel):
     id: int
     title: str | None
     start_loc: str
+    end_loc: str | None = None
     radius_m: int
     transit_mode: TransitMode
     share_token: str | None

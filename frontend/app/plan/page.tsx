@@ -12,6 +12,7 @@ export default function PlanPage() {
   const router = useRouter();
 
   const [startLoc, setStartLoc] = useState("");
+  const [endLoc, setEndLoc] = useState("");
   const [radiusM, setRadiusM] = useState(4000);
   const [stopCount, setStopCount] = useState(5);
   const [transitMode, setTransitMode] = useState<
@@ -30,6 +31,7 @@ export default function PlanPage() {
     try {
       const itin = await api.post<Itinerary>("/itineraries", {
         start_loc: startLoc,
+        end_loc: endLoc.trim() || undefined,
         radius_m: radiusM,
         stop_count: stopCount,
         transit_mode: transitMode,
@@ -65,6 +67,20 @@ export default function PlanPage() {
             onChange={setStartLoc}
             placeholder="Wisconsin State Capitol"
             required
+          />
+        </label>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink/80">
+            End location{" "}
+            <span className="font-normal text-ink/50">
+              (optional — leave blank to loop back to start)
+            </span>
+          </span>
+          <PlaceAutocomplete
+            value={endLoc}
+            onChange={setEndLoc}
+            placeholder="Same as start"
           />
         </label>
 
