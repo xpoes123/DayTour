@@ -20,6 +20,7 @@ import {
 } from "@/lib/api";
 import { AISparkleIcon } from "@/components/ai-sparkle";
 import { ItineraryMap } from "@/components/itinerary-map";
+import { LoadingScreen } from "@/components/loading-screen";
 import { NearbyRestaurants } from "@/components/nearby-restaurants";
 import { TripActions } from "@/components/trip-actions";
 import { HourChip, WeatherBanner, useWeather } from "@/components/weather-banner";
@@ -234,7 +235,7 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
     },
   });
 
-  if (isLoading) return <main className="p-8 text-ink/60">Loading…</main>;
+  if (isLoading) return <LoadingScreen />;
   if (error || !data) return <main className="p-8">Could not load itinerary.</main>;
 
   const verb = MODE_VERB[data.transit_mode];

@@ -17,6 +17,7 @@ import {
 } from "@/lib/api";
 import { AISparkleIcon } from "@/components/ai-sparkle";
 import { ItineraryMap } from "@/components/itinerary-map";
+import { LoadingScreen } from "@/components/loading-screen";
 import { NearbyRestaurants } from "@/components/nearby-restaurants";
 import { TripActions } from "@/components/trip-actions";
 import { HourChip, WeatherBanner, useWeather } from "@/components/weather-banner";
@@ -58,7 +59,7 @@ export default function SharedItineraryPage({
     tripDate,
   );
 
-  if (isLoading) return <main className="p-8 text-ink/60">Loading…</main>;
+  if (isLoading) return <LoadingScreen message="Loading this trip…" />;
   if (error || !data)
     return (
       <main className="mx-auto max-w-xl p-8">

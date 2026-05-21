@@ -32,12 +32,9 @@ export function NearbyRestaurants({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between text-xs font-medium text-ink/60 hover:text-ink"
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-ink/60 hover:text-ink"
       >
-        <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden>🍽</span> Eat near here
-        </span>
-        <span className="text-ink/40">{open ? "−" : "+"}</span>
+        <span aria-hidden>🍽</span> Eat near here
       </button>
       {open && (
         <div className="mt-2">
