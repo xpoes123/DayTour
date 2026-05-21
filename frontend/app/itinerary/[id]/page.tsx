@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
-import { use, useMemo, useState } from "react";
+import { use, useState } from "react";
 import {
   api,
   computeSchedule,
@@ -60,117 +60,26 @@ function StepChip({ step }: { step: TravelStep }) {
   );
 }
 
-type Change =
-  | { kind: "remove" }
-  | { kind: "swap"; with: Alternative };
-
-function AlternativesPicker({
-  alternatives,
-  selected,
-  usedElsewhere,
-  onPick,
-  onClear,
-}: {
-  alternatives: Alternative[];
-  selected: Alternative | null;
-  usedElsewhere: Set<string>;
-  onPick: (alt: Alternative) => void;
-  onClear: () => void;
-}) {
-  if (alternatives.length === 0) {
-    return (
-      <div className="mt-2 rounded-md border border-dashed border-ink/15 bg-ink/[0.02] p-2 text-xs text-ink/50">
-        No more places within this radius.
-      </div>
-    );
-  }
-  return (
-    <div className="mt-2 flex flex-col gap-1.5">
-      <div className="text-xs font-medium uppercase tracking-wide text-ink/50">
-        {selected ? "Replacing with" : "Replace with"}
-      </div>
-      <ul className="flex flex-col gap-1.5">
-        {alternatives.map((a) => {
-          const isSelected = selected?.place_id === a.place_id;
-          const isTaken = !isSelected && usedElsewhere.has(a.place_id);
-          const img = photoSrc(a.photo_url);
-          return (
-            <li key={a.place_id}>
-              <button
-                type="button"
-                disabled={isTaken}
-                onClick={() => (isSelected ? onClear() : onPick(a))}
-                className={`flex w-full items-center gap-2 overflow-hidden rounded-md border p-1.5 text-left text-sm transition ${
-                  isSelected
-                    ? "border-accent bg-accent/10"
-                    : isTaken
-                    ? "cursor-not-allowed border-ink/10 bg-ink/[0.03] text-ink/40"
-                    : "border-ink/10 bg-white hover:border-accent/50 hover:bg-accent/5"
-                }`}
-              >
-                {img ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={img}
-                    alt=""
-                    loading="lazy"
-                    className="h-10 w-10 flex-shrink-0 rounded object-cover"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <div className="h-10 w-10 flex-shrink-0 rounded bg-ink/5" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">{a.name}</div>
-                  <div className="flex items-center gap-2 text-xs text-ink/60">
-                    {a.rating != null && <span>★ {a.rating.toFixed(1)}</span>}
-                    {isTaken && <span className="text-ink/40">used in another slot</span>}
-                  </div>
-                </div>
-                <span
-                  aria-hidden
-                  className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-sm ${
-                    isSelected ? "bg-accent text-white" : "bg-ink/5 text-ink/40"
-                  }`}
-                >
-                  {isSelected ? "✓" : "+"}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
 function StopCard({
   stop,
   itineraryId,
-  change,
   schedule,
   hourWeather,
   onRemove,
-  onRestore,
+  busy,
+  canRemove,
 }: {
   stop: Stop;
   itineraryId: number;
-  change: Change | undefined;
   schedule: ScheduledStop | null;
   hourWeather: import("@/lib/api").WeatherHour | null;
   onRemove: () => void;
-  onRestore: () => void;
+  busy: boolean;
+  canRemove: boolean;
 }) {
-  const rejected = change !== undefined;
-  const img = !rejected ? photoSrc(stop.photo_url) : null;
+  const img = photoSrc(stop.photo_url);
   return (
-    <div
-      className={`relative overflow-hidden rounded-lg border shadow-sm transition-colors ${
-        rejected ? "border-ink/10 bg-ink/[0.03]" : "border-ink/10 bg-white"
-      }`}
-    >
+    <div className="relative overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm">
       {img && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -186,20 +95,17 @@ function StopCard({
       <div className="relative p-3 pr-10">
         <button
           type="button"
-          onClick={rejected ? onRestore : onRemove}
-          aria-label={rejected ? "Restore stop" : "Remove stop"}
-          className={`absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full text-sm font-semibold transition ${
-            rejected
-              ? "bg-ink/10 text-ink/60 hover:bg-ink/20"
-              : "bg-ink/5 text-ink/40 hover:bg-red-100 hover:text-red-700"
-          }`}
-          title={rejected ? "Restore" : "Remove"}
+          onClick={onRemove}
+          disabled={busy || !canRemove}
+          aria-label="Remove stop"
+          title={canRemove ? "Remove stop" : "Need at least 2 stops"}
+          className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-ink/5 text-sm font-semibold text-ink/40 transition hover:bg-red-100 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {rejected ? "↺" : "×"}
+          ×
         </button>
         <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
           <div className="text-xs text-ink/50">Stop {stop.position + 1}</div>
-          {schedule && !rejected && (
+          {schedule && (
             <div className="flex items-center gap-1.5 text-xs tabular-nums text-ink/60">
               <span>
                 {formatClock(schedule.arrival)} – {formatClock(schedule.depart)}
@@ -208,37 +114,73 @@ function StopCard({
             </div>
           )}
         </div>
-        <div className={`font-medium ${rejected ? "line-through text-ink/60" : ""}`}>
-          {stop.name}
-        </div>
+        <div className="font-medium">{stop.name}</div>
         <div className="flex items-center gap-2 text-sm text-ink/60">
           {stop.rating != null && <span>★ {stop.rating.toFixed(1)}</span>}
-          {schedule && !rejected && (
+          {schedule && (
             <span className="text-ink/40">· ~{dwellMinutes(stop.name)} min here</span>
           )}
         </div>
-        {!rejected && stop.description && (
+        {stop.description && (
           <p className="mt-2 text-sm leading-snug text-ink/75">{stop.description}</p>
         )}
-        {!rejected && (
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.name)}&query_place_id=${stop.place_id}`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-2 inline-block text-xs text-ink/50 hover:text-accent-dark hover:underline"
-          >
-            View on Google Maps →
-          </a>
+        <a
+          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.name)}&query_place_id=${stop.place_id}`}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 inline-block text-xs text-ink/50 hover:text-accent-dark hover:underline"
+        >
+          View on Google Maps →
+        </a>
+        <NearbyRestaurants itineraryId={itineraryId} placeId={stop.place_id} />
+      </div>
+    </div>
+  );
+}
+
+function AlternativeCard({
+  alt,
+  onAdd,
+  busy,
+  canAdd,
+}: {
+  alt: Alternative;
+  onAdd: () => void;
+  busy: boolean;
+  canAdd: boolean;
+}) {
+  const img = photoSrc(alt.photo_url);
+  return (
+    <div className="flex flex-col overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm transition hover:border-accent/40 hover:shadow">
+      {img ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={img}
+          alt=""
+          loading="lazy"
+          className="h-24 w-full object-cover"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+        />
+      ) : (
+        <div className="h-24 w-full bg-ink/5" />
+      )}
+      <div className="flex flex-1 flex-col p-3">
+        <div className="text-xs text-ink/50">Suggestion</div>
+        <div className="font-medium leading-tight">{alt.name}</div>
+        {alt.rating != null && (
+          <div className="mt-0.5 text-sm text-ink/60">★ {alt.rating.toFixed(1)}</div>
         )}
-        {change?.kind === "swap" && (
-          <div className="mt-2 rounded-md border border-accent/40 bg-accent/10 px-2 py-1.5 text-sm">
-            <div className="text-xs uppercase tracking-wide text-accent-dark">Swapping in</div>
-            <div className="font-medium text-ink">{change.with.name}</div>
-          </div>
-        )}
-        {!rejected && (
-          <NearbyRestaurants itineraryId={itineraryId} placeId={stop.place_id} />
-        )}
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={busy || !canAdd}
+          className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-50"
+          title={canAdd ? "Add to trip" : "Maximum stops reached"}
+        >
+          <span aria-hidden>＋</span> Add to trip
+        </button>
       </div>
     </div>
   );
@@ -253,24 +195,33 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
     queryFn: () => api.get(`/itineraries/${id}`),
   });
 
-  const [changes, setChanges] = useState<Map<string, Change>>(new Map());
-  const [startTime, setStartTime] = useState("09:00");
-  const [tripDate, setTripDate] = useState(() => new Date().toISOString().slice(0, 10));
-
-  // Alternatives are lazy-loaded the first time the user clicks a remove (X).
   const altsQuery = useQuery<Alternative[]>({
     queryKey: ["itinerary-alternatives", id],
-    queryFn: () => api.get(`/itineraries/${id}/alternatives`),
-    enabled: changes.size > 0,
+    queryFn: () => api.get(`/itineraries/${id}/alternatives?limit=12`),
+    enabled: !!data,
     staleTime: 5 * 60 * 1000,
   });
 
+  const [startTime, setStartTime] = useState("09:00");
+  const [tripDate, setTripDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  // Weather centered on the first stop with coords.
+  const firstWithCoords = data?.stops.find(
+    (s) => s.latitude != null && s.longitude != null,
+  );
+  const weatherQuery = useWeather(
+    firstWithCoords?.latitude,
+    firstWithCoords?.longitude,
+    tripDate,
+  );
+  const weather = weatherQuery.data ?? null;
+
   const recompute = useMutation({
-    mutationFn: (kept: string[]) =>
-      api.post<Itinerary>(`/itineraries/${id}/recompute`, { kept_place_ids: kept }),
+    mutationFn: (placeIds: string[]) =>
+      api.post<Itinerary>(`/itineraries/${id}/recompute`, { kept_place_ids: placeIds }),
     onSuccess: (updated) => {
-      setChanges(new Map());
       qc.setQueryData(["itinerary", id], updated);
+      // Alternatives will be different now (different already-used set).
       qc.invalidateQueries({ queryKey: ["itinerary-alternatives", id] });
     },
   });
@@ -283,102 +234,32 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
     },
   });
 
-  const swappedAltIds = useMemo(() => {
-    const s = new Set<string>();
-    for (const c of changes.values()) {
-      if (c.kind === "swap") s.add(c.with.place_id);
-    }
-    return s;
-  }, [changes]);
-
-  // Hooks above any conditional return — weather query must always be called.
-  const firstWithCoords = data?.stops.find(
-    (s) => s.latitude != null && s.longitude != null,
-  );
-  const weatherQuery = useWeather(
-    firstWithCoords?.latitude,
-    firstWithCoords?.longitude,
-    tripDate,
-  );
-  const weather = weatherQuery.data ?? null;
-
   if (isLoading) return <main className="p-8 text-ink/60">Loading…</main>;
   if (error || !data) return <main className="p-8">Could not load itinerary.</main>;
 
   const verb = MODE_VERB[data.transit_mode];
   const tooLong = data.total_travel_minutes > TOO_LONG_MINUTES[data.transit_mode];
 
-  // Pre-compute the schedule from the current stops + start time. Indexed by
-  // position so rejected/swapped slots still align.
   const schedule = computeSchedule(data.stops, startTime);
   const endTime = schedule.length > 0 ? schedule[schedule.length - 1].depart : null;
 
-  const visibleStops: Stop[] = data.stops.flatMap((s) => {
-    const c = changes.get(s.place_id);
-    if (!c) return [s];
-    if (c.kind === "swap") {
-      // Render the new place at the old position; lat/lon comes from the alternative.
-      return [
-        {
-          ...s,
-          place_id: c.with.place_id,
-          name: c.with.name,
-          latitude: c.with.latitude,
-          longitude: c.with.longitude,
-          photo_url: c.with.photo_url,
-          rating: c.with.rating,
-          // Routing info won't be accurate until recompute lands; clear it.
-          travel_minutes_from_prev: null,
-          travel_steps_from_prev: [],
-        },
-      ];
-    }
-    return [];
-  });
-
-  const finalPlaceIds = data.stops.flatMap((s) => {
-    const c = changes.get(s.place_id);
-    if (!c) return [s.place_id];
-    if (c.kind === "swap") return [c.with.place_id];
-    return [];
-  });
-
-  const removeCount = Array.from(changes.values()).filter((c) => c.kind === "remove").length;
-  const swapCount = Array.from(changes.values()).filter((c) => c.kind === "swap").length;
-  const canApply = changes.size > 0 && finalPlaceIds.length >= 2;
-
-  function markRemove(placeId: string) {
-    setChanges((prev) => {
-      const next = new Map(prev);
-      next.set(placeId, { kind: "remove" });
-      return next;
-    });
+  function removeStop(placeId: string) {
+    if (!data || data.stops.length <= 2) return;
+    const next = data.stops.filter((s) => s.place_id !== placeId).map((s) => s.place_id);
+    recompute.mutate(next);
   }
 
-  function restoreOriginal(placeId: string) {
-    setChanges((prev) => {
-      const next = new Map(prev);
-      next.delete(placeId);
-      return next;
-    });
+  function addStop(altPlaceId: string) {
+    if (!data || data.stops.length >= 10) return;
+    const next = [...data.stops.map((s) => s.place_id), altPlaceId];
+    recompute.mutate(next);
   }
 
-  function pickAlternative(originalPlaceId: string, alt: Alternative) {
-    setChanges((prev) => {
-      const next = new Map(prev);
-      next.set(originalPlaceId, { kind: "swap", with: alt });
-      return next;
-    });
-  }
-
-  function clearAlternative(originalPlaceId: string) {
-    // Picked alt cleared but stop stays removed (user can re-pick).
-    setChanges((prev) => {
-      const next = new Map(prev);
-      next.set(originalPlaceId, { kind: "remove" });
-      return next;
-    });
-  }
+  const canRemove = data.stops.length > 2;
+  const canAdd = data.stops.length < 10;
+  const busy = recompute.isPending;
+  const usedIds = new Set(data.stops.map((s) => s.place_id));
+  const visibleAlts = (altsQuery.data ?? []).filter((a) => !usedIds.has(a.place_id));
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
@@ -393,6 +274,7 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
         </Link>
         <TripActions itinerary={data} />
       </div>
+
       <header className="mb-6">
         <h1 className="font-display text-3xl tracking-tight">
           {data.title ?? `Day from ${data.start_loc}`}
@@ -472,120 +354,86 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
       </header>
 
       <div className="grid gap-6 md:grid-cols-[1fr_2fr]">
-        <ol className="flex flex-col gap-0 pb-24">
-          {data.stops.map((s, idx) => {
-            const c = changes.get(s.place_id);
-            const isRemoved = c !== undefined;
-            const showLeg = !isRemoved && s.travel_minutes_from_prev != null;
-            const selectedAlt = c?.kind === "swap" ? c.with : null;
-            return (
-              <li key={`${s.place_id}-${idx}`}>
-                {showLeg && (
-                  <div className="ml-4 flex flex-col gap-1 py-2">
-                    <div className="flex items-center gap-2 text-xs text-ink/50">
-                      <span className="h-4 w-px bg-ink/20" />
-                      <span>↓ {formatMinutes(s.travel_minutes_from_prev!)} {verb}</span>
-                      {s.travel_meters_from_prev != null && (
-                        <span className="text-ink/35">
-                          · {formatDistance(s.travel_meters_from_prev)}
-                        </span>
-                      )}
+        <ol className={`flex flex-col gap-0 ${busy ? "opacity-60" : ""}`}>
+          {data.stops.map((s, idx) => (
+            <li key={`${s.place_id}-${idx}`}>
+              {s.travel_minutes_from_prev != null && (
+                <div className="ml-4 flex flex-col gap-1 py-2">
+                  <div className="flex items-center gap-2 text-xs text-ink/50">
+                    <span className="h-4 w-px bg-ink/20" />
+                    <span>↓ {formatMinutes(s.travel_minutes_from_prev)} {verb}</span>
+                    {s.travel_meters_from_prev != null && (
+                      <span className="text-ink/35">
+                        · {formatDistance(s.travel_meters_from_prev)}
+                      </span>
+                    )}
+                  </div>
+                  {s.travel_steps_from_prev.length > 1 && (
+                    <div className="ml-3 flex flex-wrap gap-1">
+                      {s.travel_steps_from_prev.map((st, i) => (
+                        <StepChip key={i} step={st} />
+                      ))}
                     </div>
-                    {s.travel_steps_from_prev.length > 1 && (
-                      <div className="ml-3 flex flex-wrap gap-1">
-                        {s.travel_steps_from_prev.map((st, i) => (
-                          <StepChip key={i} step={st} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-                <StopCard
-                  stop={s}
-                  itineraryId={data.id}
-                  change={c}
-                  schedule={schedule[idx] ?? null}
-                  hourWeather={
-                    weather && schedule[idx]
-                      ? weather.hourly.find((h) => h.hour === schedule[idx].arrival.getHours()) ??
-                        null
-                      : null
-                  }
-                  onRemove={() => markRemove(s.place_id)}
-                  onRestore={() => restoreOriginal(s.place_id)}
-                />
-                {isRemoved && (
-                  <div className="ml-6 mt-1 mb-3">
-                    {altsQuery.isLoading && (
-                      <div className="text-xs text-ink/40">Finding nearby alternatives…</div>
-                    )}
-                    {altsQuery.data && (
-                      <AlternativesPicker
-                        alternatives={altsQuery.data}
-                        selected={selectedAlt}
-                        usedElsewhere={
-                          new Set(
-                            Array.from(swappedAltIds).filter(
-                              (pid) => pid !== selectedAlt?.place_id,
-                            ),
-                          )
-                        }
-                        onPick={(alt) => pickAlternative(s.place_id, alt)}
-                        onClear={() => clearAlternative(s.place_id)}
-                      />
-                    )}
-                  </div>
-                )}
-              </li>
-            );
-          })}
+                  )}
+                </div>
+              )}
+              <StopCard
+                stop={s}
+                itineraryId={data.id}
+                schedule={schedule[idx] ?? null}
+                hourWeather={
+                  weather && schedule[idx]
+                    ? weather.hourly.find((h) => h.hour === schedule[idx].arrival.getHours()) ??
+                      null
+                    : null
+                }
+                busy={busy}
+                canRemove={canRemove}
+                onRemove={() => removeStop(s.place_id)}
+              />
+            </li>
+          ))}
         </ol>
         <div className="md:sticky md:top-6 md:self-start">
-          <ItineraryMap stops={visibleStops} routeGeometry={data.route_geometry} />
+          <ItineraryMap stops={data.stops} routeGeometry={data.route_geometry} />
+          {busy && (
+            <div className="mt-2 text-center text-xs text-ink/50">
+              Recalculating route…
+            </div>
+          )}
         </div>
       </div>
 
-      {changes.size > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink/10 bg-white/95 px-6 py-3 shadow-lg backdrop-blur">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
-            <div className="text-sm text-ink/70">
-              {removeCount > 0 && (
-                <>
-                  <span className="font-medium text-ink">{removeCount}</span> removed
-                </>
-              )}
-              {removeCount > 0 && swapCount > 0 && " · "}
-              {swapCount > 0 && (
-                <>
-                  <span className="font-medium text-ink">{swapCount}</span> swapped
-                </>
-              )}
-              {" · "}
-              {finalPlaceIds.length} final stop{finalPlaceIds.length === 1 ? "" : "s"}
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setChanges(new Map())}
-                className="rounded-md border border-ink/15 px-3 py-1.5 text-sm hover:bg-ink/5"
-              >
-                Reset
-              </button>
-              <button
-                type="button"
-                disabled={!canApply || recompute.isPending}
-                onClick={() => recompute.mutate(finalPlaceIds)}
-                className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-accent-dark disabled:opacity-50"
-              >
-                {recompute.isPending
-                  ? "Recalculating…"
-                  : finalPlaceIds.length < 2
-                  ? "Keep at least 2 stops"
-                  : "Apply changes"}
-              </button>
-            </div>
+      {(altsQuery.isLoading || visibleAlts.length > 0) && (
+        <section className="mt-10">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="font-display text-xl text-ink">You might also like</h2>
+            <span className="text-xs text-ink/50">
+              Click <span aria-hidden>＋</span> to drop a place into your day —
+              the route updates automatically.
+            </span>
           </div>
-        </div>
+          {altsQuery.isLoading ? (
+            <div className="text-sm text-ink/40">Finding nearby places…</div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {visibleAlts.map((alt) => (
+                <AlternativeCard
+                  key={alt.place_id}
+                  alt={alt}
+                  busy={busy}
+                  canAdd={canAdd}
+                  onAdd={() => addStop(alt.place_id)}
+                />
+              ))}
+            </div>
+          )}
+          {!canAdd && (
+            <div className="mt-2 text-xs text-ink/50">
+              Already at the max of 10 stops. Remove one to add another.
+            </div>
+          )}
+        </section>
       )}
     </main>
   );
