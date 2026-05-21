@@ -68,14 +68,17 @@ export default function SharedItineraryPage({
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
-      <Link
-        href="/"
-        aria-label="DayTour home"
-        className="mb-4 inline-flex items-center gap-2 text-ink/60 transition hover:text-ink"
-      >
-        <Image src="/daytour.png" alt="" width={28} height={28} />
-        <span className="text-sm font-medium">DayTour</span>
-      </Link>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <Link
+          href="/"
+          aria-label="DayTour home"
+          className="inline-flex items-center gap-2 text-ink/60 transition hover:text-ink"
+        >
+          <Image src="/daytour.png" alt="" width={28} height={28} />
+          <span className="text-sm font-medium">DayTour</span>
+        </Link>
+        <TripActions itinerary={data} />
+      </div>
       <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent-dark">
         Shared trip
       </div>
@@ -119,7 +122,6 @@ export default function SharedItineraryPage({
             </div>
           )}
         </div>
-        <TripActions itinerary={data} />
       </header>
 
       <div className="grid gap-6 md:grid-cols-[1fr_2fr]">
