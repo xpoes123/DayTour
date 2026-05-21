@@ -18,6 +18,7 @@ import {
 import { ItineraryMap } from "@/components/itinerary-map";
 import { NearbyRestaurants } from "@/components/nearby-restaurants";
 import { TripActions } from "@/components/trip-actions";
+import { HourChip, WeatherBanner, useWeather } from "@/components/weather-banner";
 
 const MODE_VERB: Record<Itinerary["transit_mode"], string> = {
   walking: "walk",
@@ -40,6 +41,7 @@ export default function SharedItineraryPage({
 }) {
   const { token } = use(params);
   const [startTime, setStartTime] = useState("09:00");
+  const [tripDate, setTripDate] = useState(() => new Date().toISOString().slice(0, 10));
   const { data, isLoading, error } = useQuery<Itinerary>({
     queryKey: ["share", token],
     queryFn: () => api.get(`/itineraries/by-share/${token}`),
@@ -65,6 +67,15 @@ export default function SharedItineraryPage({
   const verb = MODE_VERB[data.transit_mode];
   const schedule = computeSchedule(data.stops, startTime);
   const endTime = schedule.length > 0 ? schedule[schedule.length - 1].depart : null;
+
+  const firstWithCoords = data.stops.find(
+    (s) => s.latitude != null && s.longitude != null,
+  );
+  const { data: weather } = useWeather(
+    firstWithCoords?.latitude,
+    firstWithCoords?.longitude,
+    tripDate,
+  );
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
@@ -105,22 +116,34 @@ export default function SharedItineraryPage({
             {data.summary}
           </div>
         )}
-        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm">
-          <label className="flex items-center gap-2">
-            <span className="text-ink/60">Start at</span>
-            <input
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className="rounded border border-ink/15 bg-white px-2 py-1 tabular-nums"
-            />
-          </label>
-          {endTime && (
-            <div className="text-ink/60">
-              · Done by{" "}
-              <span className="font-medium tabular-nums text-ink">{formatClock(endTime)}</span>
-            </div>
-          )}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm">
+            <label className="flex items-center gap-2">
+              <span className="text-ink/60">On</span>
+              <input
+                type="date"
+                value={tripDate}
+                onChange={(e) => setTripDate(e.target.value)}
+                className="rounded border border-ink/15 bg-white px-2 py-1 tabular-nums"
+              />
+            </label>
+            <label className="flex items-center gap-2">
+              <span className="text-ink/60">starting at</span>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="rounded border border-ink/15 bg-white px-2 py-1 tabular-nums"
+              />
+            </label>
+            {endTime && (
+              <div className="text-ink/60">
+                · Done by{" "}
+                <span className="font-medium tabular-nums text-ink">{formatClock(endTime)}</span>
+              </div>
+            )}
+          </div>
+          {weather && <WeatherBanner weather={weather} />}
         </div>
       </header>
 
@@ -180,8 +203,17 @@ export default function SharedItineraryPage({
                     <div className="flex items-baseline justify-between gap-2">
                       <div className="text-xs text-ink/50">Stop {s.position + 1}</div>
                       {sched && (
-                        <div className="text-xs tabular-nums text-ink/60">
-                          {formatClock(sched.arrival)} – {formatClock(sched.depart)}
+                        <div className="flex items-center gap-1.5 text-xs tabular-nums text-ink/60">
+                          <span>
+                            {formatClock(sched.arrival)} – {formatClock(sched.depart)}
+                          </span>
+                          {(() => {
+                            const h =
+                              weather?.hourly.find(
+                                (hh) => hh.hour === sched.arrival.getHours(),
+                              ) ?? null;
+                            return h ? <HourChip hour={h} /> : null;
+                          })()}
                         </div>
                       )}
                     </div>

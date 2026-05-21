@@ -89,6 +89,29 @@ export type Restaurant = {
   photo_url: string | null;
 };
 
+export type WeatherHour = {
+  hour: number;
+  temp_c: number | null;
+  temp_f: number | null;
+  code: number;
+  label: string;
+  icon: string;
+  precip_chance: number;
+};
+
+export type Weather = {
+  date: string;
+  high_c: number;
+  low_c: number;
+  high_f: number;
+  low_f: number;
+  code: number;
+  label: string;
+  icon: string;
+  precip_chance: number;
+  hourly: WeatherHour[];
+};
+
 export const auth = {
   async register(body: { username: string; email: string; password: string }) {
     await request("/auth/register", { method: "POST", body: JSON.stringify(body) });

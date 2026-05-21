@@ -21,6 +21,7 @@ import {
 import { ItineraryMap } from "@/components/itinerary-map";
 import { NearbyRestaurants } from "@/components/nearby-restaurants";
 import { TripActions } from "@/components/trip-actions";
+import { HourChip, WeatherBanner, useWeather } from "@/components/weather-banner";
 
 const MODE_VERB: Record<Itinerary["transit_mode"], string> = {
   walking: "walk",
@@ -149,6 +150,7 @@ function StopCard({
   itineraryId,
   change,
   schedule,
+  hourWeather,
   onRemove,
   onRestore,
 }: {
@@ -156,6 +158,7 @@ function StopCard({
   itineraryId: number;
   change: Change | undefined;
   schedule: ScheduledStop | null;
+  hourWeather: import("@/lib/api").WeatherHour | null;
   onRemove: () => void;
   onRestore: () => void;
 }) {
@@ -196,8 +199,11 @@ function StopCard({
         <div className="flex items-baseline justify-between gap-2">
           <div className="text-xs text-ink/50">Stop {stop.position + 1}</div>
           {schedule && !rejected && (
-            <div className="text-xs tabular-nums text-ink/60">
-              {formatClock(schedule.arrival)} – {formatClock(schedule.depart)}
+            <div className="flex items-center gap-1.5 text-xs tabular-nums text-ink/60">
+              <span>
+                {formatClock(schedule.arrival)} – {formatClock(schedule.depart)}
+              </span>
+              {hourWeather && <HourChip hour={hourWeather} />}
             </div>
           )}
         </div>
@@ -248,6 +254,7 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
 
   const [changes, setChanges] = useState<Map<string, Change>>(new Map());
   const [startTime, setStartTime] = useState("09:00");
+  const [tripDate, setTripDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   // Alternatives are lazy-loaded the first time the user clicks a remove (X).
   const altsQuery = useQuery<Alternative[]>({
@@ -285,6 +292,17 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
   // position so rejected/swapped slots still align.
   const schedule = computeSchedule(data.stops, startTime);
   const endTime = schedule.length > 0 ? schedule[schedule.length - 1].depart : null;
+
+  // Weather centered on the first stop with coords; cached server-side.
+  const firstWithCoords = data.stops.find(
+    (s) => s.latitude != null && s.longitude != null,
+  );
+  const weatherQuery = useWeather(
+    firstWithCoords?.latitude,
+    firstWithCoords?.longitude,
+    tripDate,
+  );
+  const weather = weatherQuery.data ?? null;
 
   const visibleStops: Stop[] = data.stops.flatMap((s) => {
     const c = changes.get(s.place_id);
@@ -395,22 +413,34 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
             radius, dropping stops, or switching transit mode.
           </div>
         )}
-        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm">
-          <label className="flex items-center gap-2">
-            <span className="text-ink/60">Start at</span>
-            <input
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className="rounded border border-ink/15 bg-white px-2 py-1 tabular-nums"
-            />
-          </label>
-          {endTime && (
-            <div className="text-ink/60">
-              · Done by{" "}
-              <span className="font-medium tabular-nums text-ink">{formatClock(endTime)}</span>
-            </div>
-          )}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm">
+            <label className="flex items-center gap-2">
+              <span className="text-ink/60">On</span>
+              <input
+                type="date"
+                value={tripDate}
+                onChange={(e) => setTripDate(e.target.value)}
+                className="rounded border border-ink/15 bg-white px-2 py-1 tabular-nums"
+              />
+            </label>
+            <label className="flex items-center gap-2">
+              <span className="text-ink/60">starting at</span>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="rounded border border-ink/15 bg-white px-2 py-1 tabular-nums"
+              />
+            </label>
+            {endTime && (
+              <div className="text-ink/60">
+                · Done by{" "}
+                <span className="font-medium tabular-nums text-ink">{formatClock(endTime)}</span>
+              </div>
+            )}
+          </div>
+          {weather && <WeatherBanner weather={weather} />}
         </div>
       </header>
 
@@ -448,6 +478,12 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
                   itineraryId={data.id}
                   change={c}
                   schedule={schedule[idx] ?? null}
+                  hourWeather={
+                    weather && schedule[idx]
+                      ? weather.hourly.find((h) => h.hour === schedule[idx].arrival.getHours()) ??
+                        null
+                      : null
+                  }
                   onRemove={() => markRemove(s.place_id)}
                   onRestore={() => restoreOriginal(s.place_id)}
                 />
