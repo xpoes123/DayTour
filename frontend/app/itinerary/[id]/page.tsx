@@ -183,12 +183,12 @@ function StopCard({
           }}
         />
       )}
-      <div className="relative p-3">
+      <div className="relative p-3 pr-10">
         <button
           type="button"
           onClick={rejected ? onRestore : onRemove}
           aria-label={rejected ? "Restore stop" : "Remove stop"}
-          className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-sm font-semibold transition ${
+          className={`absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full text-sm font-semibold transition ${
             rejected
               ? "bg-ink/10 text-ink/60 hover:bg-ink/20"
               : "bg-ink/5 text-ink/40 hover:bg-red-100 hover:text-red-700"
@@ -197,7 +197,7 @@ function StopCard({
         >
           {rejected ? "↺" : "×"}
         </button>
-        <div className="flex items-baseline justify-between gap-2">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
           <div className="text-xs text-ink/50">Stop {stop.position + 1}</div>
           {schedule && !rejected && (
             <div className="flex items-center gap-1.5 text-xs tabular-nums text-ink/60">
