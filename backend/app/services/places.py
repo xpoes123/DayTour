@@ -191,10 +191,40 @@ async def nearby_restaurants(
     return await _cached_or_call("searchNearbyRest", payload, fetch)
 
 
+# Broader pool than just tourist_attraction so the results aren't dominated
+# by generic parks. Each entry contributes to the search OR set.
+_ATTRACTION_TYPES = [
+    "tourist_attraction",
+    "museum",
+    "art_gallery",
+    "historical_landmark",
+    "monument",
+    "performing_arts_theater",
+    "cultural_center",
+    "aquarium",
+    "zoo",
+    "observation_deck",
+    "amusement_park",
+    "plaza",
+    "sculpture",
+]
+
+# Skip places whose *primary* type is one of these. Picnic Point is still
+# fine because its primary type is tourist_attraction; a generic neighborhood
+# park usually has primary type "park" and gets dropped.
+_EXCLUDED_PRIMARY_TYPES = ["park", "garden", "playground", "dog_park"]
+
+
 async def nearby_attractions(
     lat: float, lon: float, radius_m: int, max_results: int = 10
 ) -> list[dict[str, Any]]:
-    """Return up to `max_results` tourist attractions in the circle."""
+    """Return up to `max_results` attractions in the circle.
+
+    Mix of museums / galleries / monuments / etc. — not just generic
+    tourist_attraction (which Google heavily populates with parks). Places
+    whose primary type is a park-family category are filtered out at the
+    API level via excludedPrimaryTypes.
+    """
 
     payload = {"lat": lat, "lon": lon, "radius": radius_m, "n": max_results}
 
@@ -202,12 +232,18 @@ async def nearby_attractions(
         url = "https://places.googleapis.com/v1/places:searchNearby"
         headers = {
             "X-Goog-Api-Key": _settings.google_places_api_key,
-            "X-Goog-FieldMask": "places.id,places.displayName,places.location,places.photos,places.rating",
+            "X-Goog-FieldMask": (
+                "places.id,places.displayName,places.location,places.photos,"
+                "places.rating,places.primaryType,places.types"
+            ),
             "Content-Type": "application/json",
         }
+        # Always ask for at least 15 from Google so the filter step (cap on
+        # park-ish types, dedupe by start) leaves us with enough good ones.
         body = {
-            "includedTypes": ["tourist_attraction"],
-            "maxResultCount": max_results,
+            "includedTypes": _ATTRACTION_TYPES,
+            "excludedPrimaryTypes": _EXCLUDED_PRIMARY_TYPES,
+            "maxResultCount": max(max_results, 15),
             "locationRestriction": {
                 "circle": {"center": {"latitude": lat, "longitude": lon}, "radius": radius_m}
             },
@@ -226,7 +262,9 @@ async def nearby_attractions(
                 "lon": p["location"]["longitude"],
                 "rating": p.get("rating"),
                 "photo_name": photos[0]["name"] if photos else None,
+                "primary_type": p.get("primaryType"),
+                "types": p.get("types") or [],
             })
-        return out
+        return out[:max_results]
 
     return await _cached_or_call("searchNearby", payload, fetch)
