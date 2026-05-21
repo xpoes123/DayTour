@@ -17,6 +17,9 @@ export default function PlanPage() {
   const [transitMode, setTransitMode] = useState<
     "walking" | "driving" | "bicycling" | "transit"
   >("walking");
+  const [tripDate, setTripDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +33,7 @@ export default function PlanPage() {
         radius_m: radiusM,
         stop_count: stopCount,
         transit_mode: transitMode,
+        date: tripDate || undefined,
       });
       router.push(`/itinerary/${itin.id}`);
     } catch (err) {
@@ -61,6 +65,21 @@ export default function PlanPage() {
             onChange={setStartLoc}
             placeholder="Wisconsin State Capitol"
             required
+          />
+        </label>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink/80">
+            Date{" "}
+            <span className="font-normal text-ink/50">
+              (if rainy, we&apos;ll skip outdoor stops)
+            </span>
+          </span>
+          <input
+            type="date"
+            value={tripDate}
+            onChange={(e) => setTripDate(e.target.value)}
+            className="field tabular-nums"
           />
         </label>
 

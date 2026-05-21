@@ -28,9 +28,69 @@ from app.schemas.itinerary import (
     StopOut,
     TravelStep,
 )
-from app.services import google_routes, llm, osrm, places, routing
+from app.services import google_routes, llm, osrm, places, routing, weather
 
 router = APIRouter(prefix="/itineraries", tags=["itineraries"])
+
+
+# WMO weather codes considered "actively wet" — we drop outdoor-ish stops
+# when the forecast hits any of these AND precip_chance is meaningful, OR
+# precip_chance is high regardless of code.
+_WET_CODES = {51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99}
+
+# Place types that make a stop unpleasant in the rain (best-effort by name).
+_OUTDOOR_TYPES = {
+    "park",
+    "garden",
+    "botanical_garden",
+    "national_park",
+    "state_park",
+    "beach",
+    "scenic_lookout",
+    "hiking_area",
+    "picnic_ground",
+    "campground",
+    "playground",
+    "dog_park",
+    "zoo",  # outdoor zoo
+    "amusement_park",
+}
+
+# Subtle name signals — used as a secondary filter since Google's types
+# don't always tag "Point" / "Trail" / "Cove" places as park-family.
+_OUTDOOR_NAME_KEYWORDS = (
+    "point",
+    " trail",
+    "trailhead",
+    " cove",
+    " beach",
+    "lookout",
+    "overlook",
+    " preserve",
+    "nature reserve",
+)
+
+
+def _looks_outdoor(candidate: dict) -> bool:
+    types = set(candidate.get("types") or [])
+    if types & _OUTDOOR_TYPES:
+        return True
+    if candidate.get("primary_type") in _OUTDOOR_TYPES:
+        return True
+    n = (candidate.get("name") or "").lower()
+    return any(kw in n for kw in _OUTDOOR_NAME_KEYWORDS)
+
+
+def _is_rainy(forecast_data: dict | None) -> bool:
+    if not forecast_data:
+        return False
+    code = forecast_data.get("code")
+    precip = forecast_data.get("precip_chance") or 0
+    if precip >= 50:
+        return True
+    if code in _WET_CODES and precip >= 30:
+        return True
+    return False
 
 
 def _photo_url(place: Place) -> str | None:
@@ -191,11 +251,31 @@ async def create_itinerary(
     start = await places.search_text(body.start_loc)
     if not start:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Start location not found")
+
+    # If the user named a date and the forecast looks wet, pull a wider pool
+    # so we have room to drop outdoor-ish stops without ending up too short.
+    rainy = False
+    if body.date is not None:
+        forecast = await weather.forecast(start["lat"], start["lon"], body.date)
+        rainy = _is_rainy(forecast)
+
+    pool_size = body.stop_count if not rainy else max(body.stop_count * 2, 15)
     nearby = await places.nearby_attractions(
-        start["lat"], start["lon"], body.radius_m, max_results=body.stop_count
+        start["lat"], start["lon"], body.radius_m, max_results=pool_size
     )
     if not nearby:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No attractions found near that location")
+
+    if rainy:
+        indoor = [c for c in nearby if not _looks_outdoor(c)]
+        # If filtering would leave us empty, keep the original pool so the
+        # user still gets a plan (just outdoor-heavy) rather than a 404.
+        if indoor:
+            nearby = indoor[: body.stop_count]
+        else:
+            nearby = nearby[: body.stop_count]
+    else:
+        nearby = nearby[: body.stop_count]
 
     itinerary = Itinerary(
         user_id=user.id if user else None,

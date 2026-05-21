@@ -1,3 +1,4 @@
+from datetime import date as date_cls
 from datetime import datetime
 from typing import Literal
 
@@ -13,6 +14,9 @@ class PlanRequest(BaseModel):
     radius_m: int = Field(ge=200, le=50_000, default=4000)
     stop_count: int = Field(ge=2, le=10, default=5)
     transit_mode: TransitMode = "walking"
+    # Optional. If provided, backend looks up the forecast and culls
+    # outdoor-ish places when rain is likely.
+    date: date_cls | None = None
 
 
 class FromPromptRequest(BaseModel):
