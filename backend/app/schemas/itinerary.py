@@ -19,6 +19,10 @@ class PlanRequest(BaseModel):
     # Optional. If provided, backend looks up the forecast and culls
     # outdoor-ish places when rain is likely.
     date: date_cls | None = None
+    # Optional "HH:MM" 24h start time. Combined with date, lets the backend
+    # filter out stops that would be closed at the position they'd be
+    # visited (approximate — uses a per-mode constant for travel + dwell).
+    start_time: str | None = Field(default=None, pattern=r"^\d{2}:\d{2}$")
 
 
 class FromPromptRequest(BaseModel):

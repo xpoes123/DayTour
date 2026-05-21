@@ -39,6 +39,52 @@ router = APIRouter(prefix="/itineraries", tags=["itineraries"])
 _WET_CODES = {51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99}
 
 
+# Rough total-time-per-stop (travel + dwell) used to estimate when each stop
+# would be visited, so we can drop ones whose hours don't cover that window.
+_PER_STOP_MINUTES = {
+    "walking": 75,    # ~30 walk + ~45 dwell
+    "bicycling": 60,  # ~15 ride + ~45 dwell
+    "driving": 50,    # ~10 drive + ~40 dwell
+    "transit": 75,    # ~30 ride/wait + ~45 dwell
+}
+
+
+def _estimate_visit_minute(start_time: str, position: int, transit_mode: str) -> int:
+    """Estimate minutes-since-midnight a stop at given position would be visited."""
+    h, m = (int(x) for x in start_time.split(":"))
+    per_stop = _PER_STOP_MINUTES.get(transit_mode, 75)
+    return h * 60 + m + position * per_stop
+
+
+def _is_open_at(
+    opening_hours: list | None, weekday: int, total_minutes: int
+) -> bool:
+    """Is the place open on this weekday at this minute-of-day?
+
+    weekday: 0=Sunday..6=Saturday (Google's convention).
+    """
+    if not opening_hours:
+        return True  # unknown → assume open so we don't unfairly cull
+    for p in opening_hours:
+        o = p.get("open") or {}
+        c = p.get("close")
+        if c is None:
+            return True
+        o_day = o.get("day")
+        c_day = c.get("day")
+        o_min = (o.get("hour") or 0) * 60 + (o.get("minute") or 0)
+        c_min = (c.get("hour") or 0) * 60 + (c.get("minute") or 0)
+        if o_day == weekday and c_day == weekday and o_min <= total_minutes < c_min:
+            return True
+        # Period crossing midnight, started today.
+        if o_day == weekday and c_day != weekday and total_minutes >= o_min:
+            return True
+        # Period crossing midnight, started yesterday into today.
+        if c_day == weekday and o_day == (weekday - 1) % 7 and total_minutes < c_min:
+            return True
+    return False
+
+
 def _open_on_day(opening_hours: list | None, weekday: int) -> bool:
     """Is the place open at any point on this weekday?
 
@@ -359,6 +405,30 @@ async def create_itinerary(
         ordered_ids[:-1] if ordered_ids[0] == ordered_ids[-1] else ordered_ids
     )
     by_id = {c["place_id"]: c for c in candidates}
+
+    # Position-aware open-hours filter. Walk in 2-opt order, estimate when
+    # each stop would be visited based on its index, drop ones whose open
+    # hours don't cover that minute. Skip the start (always kept) and the
+    # end_loc (already user-chosen). One-pass: dropping a stop shifts later
+    # stops forward into possibly-open slots, but we don't re-route.
+    if body.date is not None and body.start_time:
+        weekday_google = (body.date.weekday() + 1) % 7  # Mon=0 → Sun=0
+        kept_ordered: list[str] = []
+        for i, pid in enumerate(ordered_ids_unique):
+            data = by_id.get(pid) or {}
+            # Always keep position 0 (start) and the explicit end if any.
+            is_anchor = i == 0 or (end is not None and pid == end["place_id"])
+            if is_anchor:
+                kept_ordered.append(pid)
+                continue
+            mins = _estimate_visit_minute(body.start_time, len(kept_ordered), body.transit_mode)
+            # Roll over to the next day if we run past midnight.
+            day_offset, mins = divmod(mins, 24 * 60)
+            wd = (weekday_google + day_offset) % 7
+            if _is_open_at(data.get("opening_hours"), wd, mins):
+                kept_ordered.append(pid)
+        if len(kept_ordered) >= 2:
+            ordered_ids_unique = kept_ordered
 
     stops_with_places: list[tuple[Stop, Place]] = []
     for position, pid in enumerate(ordered_ids_unique):

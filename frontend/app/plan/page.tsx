@@ -21,6 +21,7 @@ export default function PlanPage() {
   const [tripDate, setTripDate] = useState(() =>
     new Date().toISOString().slice(0, 10),
   );
+  const [startTime, setStartTime] = useState("09:00");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +37,7 @@ export default function PlanPage() {
         stop_count: stopCount,
         transit_mode: transitMode,
         date: tripDate || undefined,
+        start_time: startTime || undefined,
       });
       router.push(`/itinerary/${itin.id}`);
     } catch (err) {
@@ -84,20 +86,36 @@ export default function PlanPage() {
           />
         </label>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-ink/80">
-            Date{" "}
-            <span className="font-normal text-ink/50">
-              (if rainy, we&apos;ll skip outdoor stops)
+        <div className="grid grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-ink/80">
+              Date{" "}
+              <span className="font-normal text-ink/50">
+                (rain skips outdoor)
+              </span>
             </span>
-          </span>
-          <input
-            type="date"
-            value={tripDate}
-            onChange={(e) => setTripDate(e.target.value)}
-            className="field tabular-nums"
-          />
-        </label>
+            <input
+              type="date"
+              value={tripDate}
+              onChange={(e) => setTripDate(e.target.value)}
+              className="field tabular-nums"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-ink/80">
+              Start time{" "}
+              <span className="font-normal text-ink/50">
+                (skips closed stops)
+              </span>
+            </span>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="field tabular-nums"
+            />
+          </label>
+        </div>
 
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink/80">
