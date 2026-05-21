@@ -38,6 +38,29 @@ router = APIRouter(prefix="/itineraries", tags=["itineraries"])
 # precip_chance is high regardless of code.
 _WET_CODES = {51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99}
 
+
+def _open_on_day(opening_hours: list | None, weekday: int) -> bool:
+    """Is the place open at any point on this weekday?
+
+    weekday: 0=Sunday..6=Saturday (matches Google's convention).
+    Returns True when we have no hours data (assume open) so places without
+    coverage aren't unfairly culled.
+    """
+    if not opening_hours:
+        return True
+    for p in opening_hours:
+        o = p.get("open") or {}
+        c = p.get("close")
+        if o.get("day") == weekday:
+            return True
+        # Period crossing midnight that started yesterday into today.
+        if c and c.get("day") == weekday and o.get("day") == (weekday - 1) % 7:
+            return True
+        # Always-open (no close) entry.
+        if c is None:
+            return True
+    return False
+
 # Place types that make a stop unpleasant in the rain (best-effort by name).
 _OUTDOOR_TYPES = {
     "park",
@@ -281,14 +304,20 @@ async def create_itinerary(
 
     if rainy:
         indoor = [c for c in nearby if not _looks_outdoor(c)]
-        # If filtering would leave us empty, keep the original pool so the
-        # user still gets a plan (just outdoor-heavy) rather than a 404.
         if indoor:
-            nearby = indoor[: body.stop_count]
-        else:
-            nearby = nearby[: body.stop_count]
-    else:
-        nearby = nearby[: body.stop_count]
+            nearby = indoor
+        # else: leave nearby alone — outdoor-heavy plan beats a 404
+
+    # If a date was given, drop candidates that are closed all day. Skip
+    # places with no opening_hours info (assume they're always-on attractions
+    # like Picnic Point so we don't cull them by accident).
+    if body.date is not None:
+        weekday_google = (body.date.weekday() + 1) % 7  # Python Mon=0 → Google Sun=0
+        open_today = [c for c in nearby if _open_on_day(c.get("opening_hours"), weekday_google)]
+        if open_today:
+            nearby = open_today
+
+    nearby = nearby[: body.stop_count]
 
     itinerary = Itinerary(
         user_id=user.id if user else None,
