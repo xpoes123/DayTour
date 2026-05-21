@@ -214,6 +214,19 @@ _ATTRACTION_TYPES = [
 # park usually has primary type "park" and gets dropped.
 _EXCLUDED_PRIMARY_TYPES = ["park", "garden", "playground", "dog_park"]
 
+# Drop any place that has one of these types anywhere in its types list,
+# even if the primary type is something else. Catches venues that Google
+# classifies as tourist_attraction but are really ticketed-event spaces
+# (Overture Center, The Sylvee, etc.).
+_EXCLUDED_TYPES = [
+    "performing_arts_theater",
+    "concert_hall",
+    "movie_theater",
+    "casino",
+    "night_club",
+    "bar",
+]
+
 
 async def nearby_attractions(
     lat: float, lon: float, radius_m: int, max_results: int = 10
@@ -243,6 +256,7 @@ async def nearby_attractions(
         body = {
             "includedTypes": _ATTRACTION_TYPES,
             "excludedPrimaryTypes": _EXCLUDED_PRIMARY_TYPES,
+            "excludedTypes": _EXCLUDED_TYPES,
             "maxResultCount": max(max_results, 15),
             "locationRestriction": {
                 "circle": {"center": {"latitude": lat, "longitude": lon}, "radius": radius_m}
