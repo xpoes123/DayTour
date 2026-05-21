@@ -142,23 +142,12 @@ async def _to_out(
             )
         )
 
-    # Lazy AI fill: trip summary + per-place descriptions. Generated on first
-    # GET, persisted back. Skipped on POST so planning latency stays snappy;
-    # the user sees the text fill in on the next page load.
+    # Lazy AI fill: per-place descriptions only. Summary moved behind an
+    # explicit button (see POST /itineraries/{id}/summarize) so we don't burn
+    # tokens on every page view. Descriptions are per-place and cached
+    # across trips, so they're effectively free after the first time we see
+    # any given Place.
     if generate_summary and db is not None:
-        if not itinerary.summary:
-            try:
-                text = await llm.summarize_itinerary(
-                    [p.name for _, p in ordered], itinerary.start_loc, mode
-                )
-                if text:
-                    itinerary.summary = text
-            except Exception as e:
-                logger.warning(
-                    "summary generation failed for itinerary %s: %s", itinerary.id, e
-                )
-
-        # Descriptions are per-place, so they get cached across trips.
         needs_desc = [(s, p) for s, p in ordered if not p.description]
         if needs_desc:
             try:
@@ -173,10 +162,10 @@ async def _to_out(
                 logger.warning(
                     "describe_places failed for itinerary %s: %s", itinerary.id, e
                 )
-        try:
-            await db.commit()
-        except Exception as e:
-            logger.warning("commit failed: %s", e)
+            try:
+                await db.commit()
+            except Exception as e:
+                logger.warning("commit failed: %s", e)
 
     return ItineraryOut(
         id=itinerary.id,
@@ -306,6 +295,48 @@ async def get_itinerary(
     return await _to_out(
         itin, [(s, by_id[s.place_id]) for s in stops], db=db, generate_summary=True
     )
+
+
+@router.post("/{itinerary_id}/summarize")
+async def summarize(
+    itinerary_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Generate (or return cached) AI summary for an itinerary.
+
+    Returns { "summary": str }. Persisted on Itinerary.summary so subsequent
+    GETs include it without re-billing the model.
+    """
+    itin = (
+        await db.execute(select(Itinerary).where(Itinerary.id == itinerary_id))
+    ).scalar_one_or_none()
+    if not itin:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    if itin.summary:
+        return {"summary": itin.summary}
+
+    stops = (
+        await db.execute(select(Stop).where(Stop.itinerary_id == itin.id).order_by(Stop.position))
+    ).scalars().all()
+    place_rows = (
+        await db.execute(select(Place).where(Place.id.in_([s.place_id for s in stops])))
+    ).scalars().all()
+    by_id = {p.id: p for p in place_rows}
+    names = [by_id[s.place_id].name for s in stops]
+    if not names:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Itinerary has no stops")
+
+    try:
+        text = await llm.summarize_itinerary(names, itin.start_loc, itin.transit_mode)
+    except Exception as e:
+        logger.warning("summarize_itinerary failed for %s: %s", itin.id, e)
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Could not generate summary")
+    if not text:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Empty summary from model")
+
+    itin.summary = text
+    await db.commit()
+    return {"summary": text}
 
 
 @router.get("/{itinerary_id}/stops/{place_id}/restaurants", response_model=list[RestaurantOut])

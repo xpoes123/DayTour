@@ -18,6 +18,7 @@ import {
   type Stop,
   type TravelStep,
 } from "@/lib/api";
+import { AISparkleIcon } from "@/components/ai-sparkle";
 import { ItineraryMap } from "@/components/itinerary-map";
 import { NearbyRestaurants } from "@/components/nearby-restaurants";
 import { TripActions } from "@/components/trip-actions";
@@ -274,6 +275,14 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
     },
   });
 
+  const summarize = useMutation({
+    mutationFn: () => api.post<{ summary: string }>(`/itineraries/${id}/summarize`, {}),
+    onSuccess: ({ summary }) => {
+      const existing = qc.getQueryData<Itinerary>(["itinerary", id]);
+      if (existing) qc.setQueryData(["itinerary", id], { ...existing, summary });
+    },
+  });
+
   const swappedAltIds = useMemo(() => {
     const s = new Set<string>();
     for (const c of changes.values()) {
@@ -399,14 +408,32 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
             </>
           )}
         </p>
-        {data.summary && (
-          <div className="mt-4 rounded-lg border border-accent/30 bg-accent/[0.08] px-4 py-3 text-[15px] leading-relaxed text-ink/90">
-            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-accent-dark">
-              Your day, in brief
+        <div className="mt-4">
+          {data.summary ? (
+            <div className="rounded-lg border border-ink/10 bg-white px-4 py-3 text-[15px] leading-relaxed text-ink/90 shadow-sm">
+              <div className="mb-1 inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink/50">
+                <AISparkleIcon className="h-3.5 w-3.5" />
+                Your day, in brief
+              </div>
+              <div>{data.summary}</div>
             </div>
-            {data.summary}
-          </div>
-        )}
+          ) : (
+            <button
+              type="button"
+              onClick={() => summarize.mutate()}
+              disabled={summarize.isPending}
+              className="group inline-flex items-center gap-2 rounded-full border border-ink/10 bg-white px-3.5 py-1.5 text-sm font-medium text-ink/80 shadow-sm transition hover:border-ink/20 hover:shadow disabled:opacity-60"
+            >
+              <AISparkleIcon className="h-4 w-4 transition group-hover:scale-110" />
+              {summarize.isPending ? "Thinking…" : "Summarize my day"}
+            </button>
+          )}
+          {summarize.isError && (
+            <div className="mt-2 text-xs text-red-700">
+              Couldn&apos;t generate a summary — try again in a moment.
+            </div>
+          )}
+        </div>
         {tooLong && (
           <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
             Heads up — that&apos;s a lot of {verb}ing for one day. Consider shrinking the

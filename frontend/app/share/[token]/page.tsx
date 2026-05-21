@@ -15,6 +15,7 @@ import {
   type Itinerary,
   type TravelStep,
 } from "@/lib/api";
+import { AISparkleIcon } from "@/components/ai-sparkle";
 import { ItineraryMap } from "@/components/itinerary-map";
 import { NearbyRestaurants } from "@/components/nearby-restaurants";
 import { TripActions } from "@/components/trip-actions";
@@ -110,11 +111,12 @@ export default function SharedItineraryPage({
           )}
         </p>
         {data.summary && (
-          <div className="mt-4 rounded-lg border border-accent/30 bg-accent/[0.08] px-4 py-3 text-[15px] leading-relaxed text-ink/90">
-            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-accent-dark">
+          <div className="mt-4 rounded-lg border border-ink/10 bg-white px-4 py-3 text-[15px] leading-relaxed text-ink/90 shadow-sm">
+            <div className="mb-1 inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink/50">
+              <AISparkleIcon className="h-3.5 w-3.5" />
               Your day, in brief
             </div>
-            {data.summary}
+            <div>{data.summary}</div>
           </div>
         )}
         <div className="mt-4 flex flex-wrap items-center gap-3">
