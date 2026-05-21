@@ -282,6 +282,17 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
     return s;
   }, [changes]);
 
+  // Hooks above any conditional return — weather query must always be called.
+  const firstWithCoords = data?.stops.find(
+    (s) => s.latitude != null && s.longitude != null,
+  );
+  const weatherQuery = useWeather(
+    firstWithCoords?.latitude,
+    firstWithCoords?.longitude,
+    tripDate,
+  );
+  const weather = weatherQuery.data ?? null;
+
   if (isLoading) return <main className="p-8 text-ink/60">Loading…</main>;
   if (error || !data) return <main className="p-8">Could not load itinerary.</main>;
 
@@ -292,17 +303,6 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
   // position so rejected/swapped slots still align.
   const schedule = computeSchedule(data.stops, startTime);
   const endTime = schedule.length > 0 ? schedule[schedule.length - 1].depart : null;
-
-  // Weather centered on the first stop with coords; cached server-side.
-  const firstWithCoords = data.stops.find(
-    (s) => s.latitude != null && s.longitude != null,
-  );
-  const weatherQuery = useWeather(
-    firstWithCoords?.latitude,
-    firstWithCoords?.longitude,
-    tripDate,
-  );
-  const weather = weatherQuery.data ?? null;
 
   const visibleStops: Stop[] = data.stops.flatMap((s) => {
     const c = changes.get(s.place_id);

@@ -47,6 +47,16 @@ export default function SharedItineraryPage({
     queryFn: () => api.get(`/itineraries/by-share/${token}`),
   });
 
+  // Hooks above any conditional return — weather query must always be called.
+  const firstWithCoords = data?.stops.find(
+    (s) => s.latitude != null && s.longitude != null,
+  );
+  const { data: weather } = useWeather(
+    firstWithCoords?.latitude,
+    firstWithCoords?.longitude,
+    tripDate,
+  );
+
   if (isLoading) return <main className="p-8 text-ink/60">Loading…</main>;
   if (error || !data)
     return (
@@ -67,15 +77,6 @@ export default function SharedItineraryPage({
   const verb = MODE_VERB[data.transit_mode];
   const schedule = computeSchedule(data.stops, startTime);
   const endTime = schedule.length > 0 ? schedule[schedule.length - 1].depart : null;
-
-  const firstWithCoords = data.stops.find(
-    (s) => s.latitude != null && s.longitude != null,
-  );
-  const { data: weather } = useWeather(
-    firstWithCoords?.latitude,
-    firstWithCoords?.longitude,
-    tripDate,
-  );
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
