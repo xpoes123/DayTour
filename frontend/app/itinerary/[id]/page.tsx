@@ -1,5 +1,20 @@
 "use client";
 
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
@@ -24,6 +39,7 @@ import { ItineraryMap } from "@/components/itinerary-map";
 import { LoadingScreen } from "@/components/loading-screen";
 import { NearbyRestaurants } from "@/components/nearby-restaurants";
 import { PhotoCarousel } from "@/components/photo-carousel";
+import { GripHandle, SortableStop } from "@/components/sortable-stop";
 import { StopNotes } from "@/components/stop-notes";
 import { TripActions } from "@/components/trip-actions";
 import { HourChip, WeatherBanner, useWeather } from "@/components/weather-banner";
@@ -73,6 +89,7 @@ function StopCard({
   busy,
   canRemove,
   isEndpoint,
+  dragHandle,
 }: {
   stop: Stop;
   itineraryId: number;
@@ -82,6 +99,7 @@ function StopCard({
   busy: boolean;
   canRemove: boolean;
   isEndpoint: boolean;
+  dragHandle?: React.ReactNode;
 }) {
   const photoBase = photoSrc(`/api/places/${stop.place_id}/photo`);
   return (
@@ -89,7 +107,8 @@ function StopCard({
       {photoBase && stop.photo_count > 0 && (
         <PhotoCarousel basePath={photoBase} count={stop.photo_count} />
       )}
-      <div className="relative p-3 pr-10">
+      <div className={`relative p-3 pr-10 ${dragHandle ? "pl-10" : ""}`}>
+        {dragHandle}
         <button
           type="button"
           onClick={onRemove}
@@ -240,6 +259,14 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
 
   const [startTime, setStartTime] = useState("09:00");
   const [tripDate, setTripDate] = useState(() => new Date().toISOString().slice(0, 10));
+  // When the user locks their order, add/remove operations call /reorder
+  // (preserves order) instead of /recompute (runs 2-opt). Drag-and-drop
+  // always uses /reorder regardless.
+  const [lockOrder, setLockOrder] = useState(false);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   // Weather centered on the first stop with coords.
   const firstWithCoords = data?.stops.find(
@@ -259,6 +286,14 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
       qc.setQueryData(["itinerary", id], updated);
       // Alternatives will be different now (different already-used set).
       qc.invalidateQueries({ queryKey: ["itinerary-alternatives", id] });
+    },
+  });
+
+  const reorder = useMutation({
+    mutationFn: (placeIds: string[]) =>
+      api.post<Itinerary>(`/itineraries/${id}/reorder`, { kept_place_ids: placeIds }),
+    onSuccess: (updated) => {
+      qc.setQueryData(["itinerary", id], updated);
     },
   });
 
@@ -282,18 +317,28 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
   function removeStop(placeId: string) {
     if (!data || data.stops.length <= 2) return;
     const next = data.stops.filter((s) => s.place_id !== placeId).map((s) => s.place_id);
-    recompute.mutate(next);
+    (lockOrder ? reorder : recompute).mutate(next);
   }
 
   function addStop(altPlaceId: string) {
     if (!data || data.stops.length >= 10) return;
     const next = [...data.stops.map((s) => s.place_id), altPlaceId];
-    recompute.mutate(next);
+    (lockOrder ? reorder : recompute).mutate(next);
+  }
+
+  function onDragEnd(e: DragEndEvent) {
+    if (!data || !e.over || e.active.id === e.over.id) return;
+    const ids = data.stops.map((s) => s.place_id);
+    const from = ids.indexOf(String(e.active.id));
+    const to = ids.indexOf(String(e.over.id));
+    if (from < 0 || to < 0) return;
+    const next = arrayMove(ids, from, to);
+    reorder.mutate(next);
   }
 
   const canRemove = data.stops.length > 2;
   const canAdd = data.stops.length < 10;
-  const busy = recompute.isPending;
+  const busy = recompute.isPending || reorder.isPending;
   const usedIds = new Set(data.stops.map((s) => s.place_id));
   const visibleAlts = (altsQuery.data ?? []).filter((a) => !usedIds.has(a.place_id));
 
@@ -386,13 +431,33 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
             )}
           </div>
           {weather && <WeatherBanner weather={weather} />}
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-ink/10 bg-white px-3 py-2 text-sm text-ink/70 hover:bg-ink/5">
+            <input
+              type="checkbox"
+              checked={lockOrder}
+              onChange={(e) => setLockOrder(e.target.checked)}
+              className="accent-accent"
+            />
+            <span>Lock my order</span>
+          </label>
         </div>
       </header>
 
       <div className="grid gap-6 md:grid-cols-[1fr_2fr]">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
+        >
+        <SortableContext
+          items={data.stops.map((s) => s.place_id)}
+          strategy={verticalListSortingStrategy}
+        >
         <ol className={`flex flex-col gap-0 ${busy ? "opacity-60" : ""}`}>
           {data.stops.map((s, idx) => (
-            <li key={`${s.place_id}-${idx}`}>
+            <SortableStop key={s.place_id} id={s.place_id}>
+              {({ listeners, attributes }) => (
+            <li>
               {s.travel_minutes_from_prev != null && (
                 <div className="ml-4 flex flex-col gap-1 py-2">
                   <div className="flex items-center gap-2 text-xs text-ink/50">
@@ -429,10 +494,15 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
                   idx === 0 || (!!data.end_loc && idx === data.stops.length - 1)
                 }
                 onRemove={() => removeStop(s.place_id)}
+                dragHandle={<GripHandle listeners={listeners} attributes={attributes} />}
               />
             </li>
+              )}
+            </SortableStop>
           ))}
         </ol>
+        </SortableContext>
+        </DndContext>
         <div className="md:sticky md:top-6 md:self-start">
           <ItineraryMap
             stops={data.stops}

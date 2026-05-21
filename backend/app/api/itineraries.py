@@ -558,6 +558,53 @@ async def summarize(
     return {"summary": text}
 
 
+@router.post("/{itinerary_id}/reorder", response_model=ItineraryOut)
+async def reorder(
+    itinerary_id: int,
+    body: RecomputeRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Persist the itinerary's stops in the given order, skipping 2-opt.
+
+    Same body shape as /recompute (kept_place_ids), but the order is taken
+    as-given so a user's manual drag-and-drop sticks. Routing geometry +
+    durations are recomputed for the new sequence.
+    """
+    itin = (
+        await db.execute(select(Itinerary).where(Itinerary.id == itinerary_id))
+    ).scalar_one_or_none()
+    if not itin:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+    found_rows = (
+        await db.execute(select(Place).where(Place.google_place_id.in_(body.kept_place_ids)))
+    ).scalars().all()
+    place_by_google = {p.google_place_id: p for p in found_rows}
+    ordered = [pid for pid in body.kept_place_ids if pid in place_by_google]
+    if len(ordered) < 2:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Need at least 2 known stops to reorder.",
+        )
+
+    existing_stops = (
+        await db.execute(select(Stop).where(Stop.itinerary_id == itin.id))
+    ).scalars().all()
+    for s in existing_stops:
+        await db.delete(s)
+    await db.flush()
+
+    new_stops_with_places: list[tuple[Stop, Place]] = []
+    for pos, pid in enumerate(ordered):
+        p = place_by_google[pid]
+        stop = Stop(itinerary_id=itin.id, place_id=p.id, position=pos)
+        db.add(stop)
+        new_stops_with_places.append((stop, p))
+
+    await db.commit()
+    return await _to_out(itin, new_stops_with_places)
+
+
 @router.patch("/{itinerary_id}/stops/{place_id}/notes")
 async def update_stop_notes(
     itinerary_id: int,
