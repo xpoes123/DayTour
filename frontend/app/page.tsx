@@ -1,11 +1,34 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api, formatMinutes, photoSrc, type Itinerary } from "@/lib/api";
 
 const FEATURED_SHARE_TOKEN = "xYWdodN2Fy8";
+
+// Hand-picked seed list of fun starting points for the Surprise me button.
+// Mix of landmarks across different cities + climates + vibes so each spin
+// lands somewhere meaningfully different.
+const SURPRISE_SEEDS: { start: string; vibe?: string; mode?: string; stops?: number }[] = [
+  { start: "Wisconsin State Capitol, Madison", vibe: "art" },
+  { start: "Brooklyn Bridge, New York", mode: "walking" },
+  { start: "Ferry Building, San Francisco", vibe: "foodie" },
+  { start: "Pike Place Market, Seattle", vibe: "foodie" },
+  { start: "Millennium Park, Chicago", vibe: "art" },
+  { start: "French Quarter, New Orleans", vibe: "foodie" },
+  { start: "Pearl Street Mall, Boulder", vibe: "outdoors" },
+  { start: "Boston Common, Boston", vibe: "art" },
+  { start: "Fisherman's Wharf, San Francisco" },
+  { start: "South Beach, Miami", vibe: "outdoors" },
+  { start: "The Strip, Las Vegas", vibe: "nightlife" },
+  { start: "Pioneer Square, Portland", vibe: "hidden_gems" },
+  { start: "Faneuil Hall, Boston", vibe: "foodie" },
+  { start: "Old Town, Alexandria Virginia", vibe: "hidden_gems" },
+  { start: "Times Square, New York", vibe: "nightlife" },
+  { start: "Balboa Park, San Diego", vibe: "family" },
+];
 
 function FeaturedTrip() {
   const { data } = useQuery<Itinerary>({
@@ -73,6 +96,33 @@ function FeaturedTrip() {
   );
 }
 
+function SurpriseButton() {
+  const router = useRouter();
+  const surprise = useMutation({
+    mutationFn: async () => {
+      const pick = SURPRISE_SEEDS[Math.floor(Math.random() * SURPRISE_SEEDS.length)];
+      return api.post<Itinerary>("/itineraries", {
+        start_loc: pick.start,
+        radius_m: 4000,
+        stop_count: pick.stops ?? 5,
+        transit_mode: pick.mode ?? "walking",
+        vibe: pick.vibe,
+      });
+    },
+    onSuccess: (itin) => router.push(`/itinerary/${itin.id}`),
+  });
+  return (
+    <button
+      type="button"
+      onClick={() => surprise.mutate()}
+      disabled={surprise.isPending}
+      className="rounded-lg border border-ink/20 px-6 py-3 font-medium text-ink hover:bg-ink hover:text-paper disabled:opacity-60"
+    >
+      {surprise.isPending ? "Finding somewhere fun…" : "🎲 Surprise me"}
+    </button>
+  );
+}
+
 export default function Home() {
   return (
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center gap-12 px-6 py-16">
@@ -104,6 +154,7 @@ export default function Home() {
           >
             Describe my vibe →
           </Link>
+          <SurpriseButton />
         </div>
         <Link href="/auth" className="text-sm text-ink/50 hover:text-ink">
           Sign in or create an account
