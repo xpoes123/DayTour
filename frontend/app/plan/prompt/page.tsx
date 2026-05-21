@@ -43,7 +43,7 @@ export default function PromptPlanPage() {
     <main className="mx-auto max-w-2xl px-6 py-12">
       <header className="mb-8 flex items-center gap-4">
         <Link href="/" aria-label="DayTour home" className="transition hover:opacity-80">
-          <Image src="/daytour.png" alt="DayTour" width={56} height={56} />
+          <Image src="/daytour.png" alt="DayTour" width={56} height={56} priority />
         </Link>
         <div>
           <h1 className="font-display text-3xl tracking-tight">Describe your day</h1>
