@@ -59,6 +59,9 @@ class TravelStep(BaseModel):
     distance_m: int
     # e.g. "L", "M14" — the transit line short-name, when present
     label: str | None = None
+    # [[lat, lon], ...] for the step's portion of the route. Empty when
+    # backend was OSRM (no step-level granularity).
+    geometry: list[list[float]] = []
 
 
 class StopOut(BaseModel):

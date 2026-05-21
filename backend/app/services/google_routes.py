@@ -32,6 +32,7 @@ _FIELD_MASK = (
     "routes.legs.steps.travelMode,"
     "routes.legs.steps.staticDuration,"
     "routes.legs.steps.distanceMeters,"
+    "routes.legs.steps.polyline.geoJsonLinestring,"
     "routes.legs.steps.transitDetails.transitLine.nameShort,"
     "routes.legs.steps.transitDetails.transitLine.name,"
     "routes.legs.steps.transitDetails.transitLine.vehicle.type"
@@ -53,6 +54,8 @@ def _parse_steps(leg_obj: dict[str, Any]) -> list[dict[str, Any]]:
         tm = step.get("travelMode")
         dur = _seconds_from_duration(step.get("staticDuration", "0s"))
         dist = int(step.get("distanceMeters", 0))
+        ls = (step.get("polyline") or {}).get("geoJsonLinestring") or {}
+        geometry = [[lat, lon] for lon, lat in (ls.get("coordinates") or [])]
         if tm == "WALK":
             mode = "walk"
             label: str | None = None
@@ -73,19 +76,26 @@ def _parse_steps(leg_obj: dict[str, Any]) -> list[dict[str, Any]]:
             label = td.get("nameShort") or td.get("name") or None
         else:
             continue
-        raw.append({"mode": mode, "duration_sec": dur, "distance_m": dist, "label": label})
+        raw.append({
+            "mode": mode,
+            "duration_sec": dur,
+            "distance_m": dist,
+            "label": label,
+            "geometry": geometry,
+        })
 
     merged: list[dict[str, Any]] = []
     for s in raw:
         if merged and merged[-1]["mode"] == s["mode"] and merged[-1]["label"] == s["label"]:
             merged[-1]["duration_sec"] += s["duration_sec"]
             merged[-1]["distance_m"] += s["distance_m"]
+            merged[-1]["geometry"].extend(s["geometry"])
         else:
             merged.append(dict(s))
 
-    # Drop walks under 2 minutes — they're transfer noise (cross-platform
-    # subway swaps, exiting a station, etc.). The leg total still includes
-    # them; we just hide the chip so transit rows stay scannable.
+    # Drop walks under 2 minutes — they're transfer noise. Leg total still
+    # includes them in duration/distance; we just hide the chip + tiny
+    # polyline segment so transit rows stay scannable.
     return [s for s in merged if not (s["mode"] == "walk" and s["duration_sec"] < 120)]
 _CACHE_TTL = 60 * 60 * 6  # 6h — transit schedules drift
 

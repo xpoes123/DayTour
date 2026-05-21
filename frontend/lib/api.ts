@@ -145,6 +145,7 @@ export type TravelStep = {
   duration_sec: number;
   distance_m: number;
   label: string | null;
+  geometry: [number, number][];
 };
 
 export type Stop = {

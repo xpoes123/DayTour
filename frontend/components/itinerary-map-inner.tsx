@@ -4,7 +4,14 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 import { useEffect, useMemo } from "react";
-import type { Stop } from "@/lib/api";
+import type { Stop, TravelStep } from "@/lib/api";
+
+const SEGMENT_COLOR: Record<TravelStep["mode"], string> = {
+  walk: "#6b7280",   // gray-500
+  bus: "#d97706",    // amber-600
+  subway: "#2e86c1", // accent-dark blue
+  rail: "#059669",   // emerald-600
+};
 
 function numberedIcon(n: number): L.DivIcon {
   return L.divIcon({
@@ -45,9 +52,27 @@ export default function ItineraryMapInner({
         .map((s) => [s.latitude!, s.longitude!]),
     [stops],
   );
-  // Prefer the OSRM road-following polyline if we have it; otherwise fall back
-  // to a straight-line connector between stops so something draws.
-  const linePoints = routeGeometry && routeGeometry.length > 1 ? routeGeometry : points;
+
+  // Gather any per-step geometry across all stops. Present only when the
+  // route came from Google Routes (transit / fallback non-transit). OSRM
+  // legs ship with empty steps.
+  const segments = useMemo(() => {
+    const out: { mode: TravelStep["mode"]; coords: [number, number][] }[] = [];
+    for (const s of stops) {
+      for (const step of s.travel_steps_from_prev ?? []) {
+        if (step.geometry && step.geometry.length > 1) {
+          out.push({ mode: step.mode, coords: step.geometry });
+        }
+      }
+    }
+    return out;
+  }, [stops]);
+
+  const hasSegments = segments.length > 0;
+  // Single-color fallback when we can't split: prefer OSRM road geometry,
+  // otherwise straight lines between stops.
+  const fallbackLine =
+    routeGeometry && routeGeometry.length > 1 ? routeGeometry : points;
 
   if (points.length === 0) {
     return (
@@ -68,7 +93,22 @@ export default function ItineraryMapInner({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <Polyline positions={linePoints} pathOptions={{ color: "#5DADE2", weight: 4 }} />
+      {hasSegments ? (
+        segments.map((seg, i) => (
+          <Polyline
+            key={i}
+            positions={seg.coords}
+            pathOptions={{
+              color: SEGMENT_COLOR[seg.mode],
+              weight: seg.mode === "walk" ? 3 : 5,
+              opacity: seg.mode === "walk" ? 0.75 : 1,
+              dashArray: seg.mode === "walk" ? "2 6" : undefined,
+            }}
+          />
+        ))
+      ) : (
+        <Polyline positions={fallbackLine} pathOptions={{ color: "#5DADE2", weight: 4 }} />
+      )}
       {closeLoop && points.length > 1 && (
         <Polyline
           positions={[points[points.length - 1], points[0]]}
