@@ -341,9 +341,16 @@ async def create_itinerary(
         forecast = await weather.forecast(start["lat"], start["lon"], body.date)
         rainy = _is_rainy(forecast)
 
+    # Default to "nightlife" vibe when starting in the evening and the user
+    # didn't pick one. Museums are closed by 5pm in most cities; bars are not.
+    effective_vibe = body.vibe
+    if effective_vibe is None and body.start_time and int(body.start_time[:2]) >= 17:
+        effective_vibe = "nightlife"
+
     pool_size = body.stop_count if not rainy else max(body.stop_count * 2, 15)
     nearby = await places.nearby_attractions(
-        start["lat"], start["lon"], body.radius_m, max_results=pool_size
+        start["lat"], start["lon"], body.radius_m, max_results=pool_size,
+        vibe=effective_vibe,
     )
     if not nearby:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No attractions found near that location")

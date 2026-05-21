@@ -196,55 +196,100 @@ async def nearby_restaurants(
     return await _cached_or_call("searchNearbyRest", payload, fetch)
 
 
-# Broader pool than just tourist_attraction so the results aren't dominated
-# by generic parks, but narrow enough that everything is somewhere a person
-# could just drop in during the day. Skip event venues (theaters, concert
-# halls, cultural centers, amusement parks) — those need a ticket and a
-# scheduled show, not casual visiting.
-_ATTRACTION_TYPES = [
-    "tourist_attraction",
-    "museum",
-    "art_gallery",
-    "historical_landmark",
-    "monument",
-    "aquarium",
-    "zoo",
-    "observation_deck",
-    "plaza",
-    "sculpture",
-]
+# Per-vibe config for the Google Places nearby search. Each entry shapes the
+# (includedTypes, excludedPrimaryTypes, excludedTypes) triplet so the type
+# pool matches the user's intent for the trip.
+_VIBE_TYPES: dict[str | None, dict[str, list[str]]] = {
+    None: {
+        "included": [
+            "tourist_attraction", "museum", "art_gallery", "historical_landmark",
+            "monument", "aquarium", "zoo", "observation_deck", "plaza", "sculpture",
+        ],
+        "excluded_primary": ["park", "garden", "playground", "dog_park"],
+        "excluded": [
+            "performing_arts_theater", "concert_hall", "movie_theater",
+            "casino", "night_club", "bar",
+        ],
+    },
+    "foodie": {
+        "included": [
+            "restaurant", "bakery", "cafe", "ice_cream_shop", "food_court",
+            "market", "brewery", "winery", "bagel_shop", "coffee_shop",
+        ],
+        "excluded_primary": ["park", "garden", "playground", "dog_park"],
+        "excluded": ["casino", "night_club"],
+    },
+    "art": {
+        "included": [
+            "museum", "art_gallery", "sculpture", "monument", "historical_landmark",
+            "performing_arts_theater", "cultural_center", "observation_deck",
+            "tourist_attraction",
+        ],
+        "excluded_primary": ["park", "garden", "playground", "dog_park"],
+        "excluded": ["casino", "night_club", "bar"],
+    },
+    "family": {
+        "included": [
+            "zoo", "aquarium", "museum", "amusement_park", "park", "library",
+            "sculpture", "observation_deck", "tourist_attraction", "bowling_alley",
+            "ice_skating_rink",
+        ],
+        "excluded_primary": [],
+        "excluded": ["casino", "night_club", "bar", "performing_arts_theater"],
+    },
+    "outdoors": {
+        "included": [
+            "park", "garden", "botanical_garden", "national_park", "state_park",
+            "marina", "beach", "scenic_lookout", "hiking_area", "picnic_ground",
+            "plaza", "sculpture", "tourist_attraction",
+        ],
+        "excluded_primary": [],
+        "excluded": [
+            "casino", "night_club", "bar", "movie_theater",
+            "performing_arts_theater", "shopping_mall",
+        ],
+    },
+    "nightlife": {
+        "included": [
+            "bar", "night_club", "restaurant", "brewery", "winery",
+            "performing_arts_theater", "casino", "comedy_club", "karaoke",
+            "wine_bar", "pub",
+        ],
+        "excluded_primary": ["park", "garden", "playground", "dog_park"],
+        "excluded": [],
+    },
+    "hidden_gems": {
+        "included": [
+            "art_gallery", "sculpture", "monument", "market", "cultural_center",
+            "plaza", "museum", "tourist_attraction", "bookstore",
+        ],
+        "excluded_primary": ["park", "garden", "playground", "dog_park", "parking_lot"],
+        "excluded": ["casino", "night_club", "bar", "amusement_park"],
+    },
+}
 
-# Skip places whose *primary* type is one of these. Picnic Point is still
-# fine because its primary type is tourist_attraction; a generic neighborhood
-# park usually has primary type "park" and gets dropped.
-_EXCLUDED_PRIMARY_TYPES = ["park", "garden", "playground", "dog_park"]
 
-# Drop any place that has one of these types anywhere in its types list,
-# even if the primary type is something else. Catches venues that Google
-# classifies as tourist_attraction but are really ticketed-event spaces
-# (Overture Center, The Sylvee, etc.).
-_EXCLUDED_TYPES = [
-    "performing_arts_theater",
-    "concert_hall",
-    "movie_theater",
-    "casino",
-    "night_club",
-    "bar",
-]
+def _vibe_config(vibe: str | None) -> dict[str, list[str]]:
+    return _VIBE_TYPES.get(vibe) or _VIBE_TYPES[None]
 
 
 async def nearby_attractions(
-    lat: float, lon: float, radius_m: int, max_results: int = 10
+    lat: float,
+    lon: float,
+    radius_m: int,
+    max_results: int = 10,
+    vibe: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Return up to `max_results` attractions in the circle.
+    """Return up to `max_results` attractions matching the vibe."""
 
-    Mix of museums / galleries / monuments / etc. — not just generic
-    tourist_attraction (which Google heavily populates with parks). Places
-    whose primary type is a park-family category are filtered out at the
-    API level via excludedPrimaryTypes.
-    """
-
-    payload = {"lat": lat, "lon": lon, "radius": radius_m, "n": max_results}
+    cfg = _vibe_config(vibe)
+    payload = {
+        "lat": lat,
+        "lon": lon,
+        "radius": radius_m,
+        "n": max_results,
+        "vibe": vibe or "default",
+    }
 
     async def fetch():
         url = "https://places.googleapis.com/v1/places:searchNearby"
@@ -257,12 +302,10 @@ async def nearby_attractions(
             ),
             "Content-Type": "application/json",
         }
-        # Always ask for at least 15 from Google so the filter step (cap on
-        # park-ish types, dedupe by start) leaves us with enough good ones.
         body = {
-            "includedTypes": _ATTRACTION_TYPES,
-            "excludedPrimaryTypes": _EXCLUDED_PRIMARY_TYPES,
-            "excludedTypes": _EXCLUDED_TYPES,
+            "includedTypes": cfg["included"],
+            "excludedPrimaryTypes": cfg["excluded_primary"],
+            "excludedTypes": cfg["excluded"],
             "maxResultCount": max(max_results, 15),
             "locationRestriction": {
                 "circle": {"center": {"latitude": lat, "longitude": lon}, "radius": radius_m}

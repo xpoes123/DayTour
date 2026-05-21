@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { api, type Itinerary } from "@/lib/api";
 import { PlaceAutocomplete } from "@/components/place-autocomplete";
 import { TransitModePicker } from "@/components/transit-mode-picker";
+import { VibePicker, type Vibe } from "@/components/vibe-picker";
 
 export default function PlanPage() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function PlanPage() {
     new Date().toISOString().slice(0, 10),
   );
   const [startTime, setStartTime] = useState("09:00");
+  const [vibe, setVibe] = useState<Vibe | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,6 +40,7 @@ export default function PlanPage() {
         transit_mode: transitMode,
         date: tripDate || undefined,
         start_time: startTime || undefined,
+        vibe: vibe ?? undefined,
       });
       router.push(`/itinerary/${itin.id}`);
     } catch (err) {
@@ -149,6 +152,16 @@ export default function PlanPage() {
             className="accent-accent"
           />
         </label>
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink/80">
+            Vibe{" "}
+            <span className="font-normal text-ink/50">
+              (shapes the kind of stops we pick)
+            </span>
+          </span>
+          <VibePicker value={vibe} onChange={setVibe} />
+        </div>
 
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink/80">Transit</span>

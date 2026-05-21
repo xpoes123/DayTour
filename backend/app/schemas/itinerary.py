@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 
 TransitMode = Literal["walking", "driving", "bicycling", "transit"]
+Vibe = Literal["foodie", "art", "family", "outdoors", "nightlife", "hidden_gems"]
 
 
 class PlanRequest(BaseModel):
@@ -23,6 +24,9 @@ class PlanRequest(BaseModel):
     # filter out stops that would be closed at the position they'd be
     # visited (approximate — uses a per-mode constant for travel + dwell).
     start_time: str | None = Field(default=None, pattern=r"^\d{2}:\d{2}$")
+    # Optional vibe — changes the Google Places type pool we search for, and
+    # also adjusts the LLM prompts so summaries / descriptions match the vibe.
+    vibe: Vibe | None = None
 
 
 class FromPromptRequest(BaseModel):
