@@ -230,7 +230,13 @@ _VIBE_TYPES: dict[str | None, dict[str, list[str]]] = {
             "market", "brewery", "winery", "bagel_shop", "coffee_shop",
         ],
         "excluded_primary": ["park", "garden", "playground", "dog_park"],
-        "excluded": ["casino", "night_club"],
+        "excluded": [
+            "casino", "night_club",
+            # No chain fast food or supermarkets — they tag as restaurant /
+            # market in Google's types and otherwise dominate the pool.
+            "fast_food_restaurant", "meal_takeaway",
+            "supermarket", "grocery_store", "convenience_store",
+        ],
     },
     "art": {
         "included": [
@@ -264,12 +270,18 @@ _VIBE_TYPES: dict[str | None, dict[str, list[str]]] = {
     },
     "nightlife": {
         "included": [
-            "bar", "night_club", "restaurant", "brewery", "winery",
-            "performing_arts_theater", "casino", "comedy_club", "karaoke",
-            "wine_bar", "pub",
+            "bar", "night_club", "brewery", "winery", "pub", "wine_bar",
+            "comedy_club", "karaoke", "restaurant",
         ],
         "excluded_primary": ["park", "garden", "playground", "dog_park"],
-        "excluded": [],
+        "excluded": [
+            # Walk-in only — no ticketed event venues.
+            "performing_arts_theater", "concert_hall", "movie_theater", "casino",
+            # No chains or breakfast/brunch spots.
+            "fast_food_restaurant", "meal_takeaway",
+            "breakfast_restaurant", "brunch_restaurant",
+            "cafe", "bakery", "ice_cream_shop", "coffee_shop",
+        ],
     },
     "hidden_gems": {
         "included": [
