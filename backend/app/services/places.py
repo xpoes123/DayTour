@@ -240,7 +240,7 @@ _VIBE_TYPES: dict[str | None, dict[str, list[str]]] = {
     "outdoors": {
         "included": [
             "park", "garden", "botanical_garden", "national_park", "state_park",
-            "marina", "beach", "scenic_lookout", "hiking_area", "picnic_ground",
+            "marina", "beach", "hiking_area", "picnic_ground",
             "plaza", "sculpture", "tourist_attraction",
         ],
         "excluded_primary": [],
@@ -261,7 +261,7 @@ _VIBE_TYPES: dict[str | None, dict[str, list[str]]] = {
     "hidden_gems": {
         "included": [
             "art_gallery", "sculpture", "monument", "market", "cultural_center",
-            "plaza", "museum", "tourist_attraction", "bookstore",
+            "plaza", "museum", "tourist_attraction", "library",
         ],
         "excluded_primary": ["park", "garden", "playground", "dog_park", "parking_lot"],
         "excluded": ["casino", "night_club", "bar", "amusement_park"],
