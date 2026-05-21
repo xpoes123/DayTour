@@ -230,7 +230,8 @@ export default function SharedItineraryPage({
                         </span>
                       )}
                     </div>
-                    {s.description && (
+                    {s.description &&
+                      !(idx === 0 || (data.end_loc && idx === data.stops.length - 1)) && (
                       <p className="mt-2 text-sm leading-snug text-ink/75">{s.description}</p>
                     )}
                     <a

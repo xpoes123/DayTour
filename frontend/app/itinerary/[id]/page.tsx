@@ -69,6 +69,7 @@ function StopCard({
   onRemove,
   busy,
   canRemove,
+  isEndpoint,
 }: {
   stop: Stop;
   itineraryId: number;
@@ -77,6 +78,7 @@ function StopCard({
   onRemove: () => void;
   busy: boolean;
   canRemove: boolean;
+  isEndpoint: boolean;
 }) {
   const img = photoSrc(stop.photo_url);
   return (
@@ -122,7 +124,7 @@ function StopCard({
             <span className="text-ink/40">· ~{dwellMinutes(stop.name)} min here</span>
           )}
         </div>
-        {stop.description && (
+        {stop.description && !isEndpoint && (
           <p className="mt-2 text-sm leading-snug text-ink/75">{stop.description}</p>
         )}
         <a
@@ -390,6 +392,9 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
                 }
                 busy={busy}
                 canRemove={canRemove}
+                isEndpoint={
+                  idx === 0 || (!!data.end_loc && idx === data.stops.length - 1)
+                }
                 onRemove={() => removeStop(s.place_id)}
               />
             </li>
