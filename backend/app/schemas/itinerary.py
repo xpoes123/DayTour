@@ -58,6 +58,22 @@ class RestaurantOut(BaseModel):
     photo_url: str | None
 
 
+class AddEventRequest(BaseModel):
+    # External id (e.g. ticketmaster:abc123) for dedupe; auto-generated for
+    # custom events from a stable hash of (name + venue + time).
+    external_id: str | None = None
+    name: str = Field(min_length=1, max_length=255)
+    venue_name: str | None = None
+    venue_address: str | None = None
+    # For ticketed events we already know the exact lat/lon. For custom
+    # events the user typed a venue and we resolve it via places.search_text.
+    venue_lat: float | None = Field(default=None, ge=-90, le=90)
+    venue_lon: float | None = Field(default=None, ge=-180, le=180)
+    venue_query: str | None = None
+    start_local: str | None = None
+    url: str | None = None
+
+
 TravelStepMode = Literal["walk", "bus", "subway", "rail"]
 
 

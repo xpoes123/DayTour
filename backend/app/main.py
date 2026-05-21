@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, itineraries, places, weather
+from app.api import auth, events, itineraries, places, weather
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -19,6 +19,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(itineraries.router, prefix="/api")
 app.include_router(places.router, prefix="/api")
 app.include_router(weather.router, prefix="/api")
+app.include_router(events.router, prefix="/api")
 
 
 @app.get("/health")

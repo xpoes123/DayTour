@@ -91,6 +91,19 @@ export type Restaurant = {
   photo_url: string | null;
 };
 
+export type EventItem = {
+  id: string;
+  name: string;
+  url: string | null;
+  image: string | null;
+  start_local: string;
+  venue_name: string | null;
+  venue_lat: number;
+  venue_lon: number;
+  venue_address: string | null;
+  genre: string | null;
+};
+
 export type WeatherHour = {
   hour: number;
   temp_c: number | null;

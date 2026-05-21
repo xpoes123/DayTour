@@ -19,6 +19,10 @@ class Settings(BaseSettings):
 
     anthropic_api_key: str = ""
 
+    # Free key from developer.ticketmaster.com. When unset, /api/events
+    # returns an empty list and the frontend hides the panel.
+    ticketmaster_api_key: str = ""
+
     cors_origins: str = "http://localhost:3000"
 
     @property

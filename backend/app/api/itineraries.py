@@ -5,6 +5,7 @@ Itinerary is linked to that user; otherwise it's anonymous (user_id=NULL) and
 addressable by id / share_token.
 """
 
+import hashlib
 import logging
 import uuid
 from typing import Annotated
@@ -19,6 +20,7 @@ from app.core.deps import optional_current_user
 from app.db.session import get_db
 from app.models import Itinerary, Place, Stop, User
 from app.schemas.itinerary import (
+    AddEventRequest,
     AlternativeOut,
     FromPromptRequest,
     ItineraryOut,
@@ -603,6 +605,106 @@ async def reorder(
 
     await db.commit()
     return await _to_out(itin, new_stops_with_places)
+
+
+@router.post("/{itinerary_id}/add-event", response_model=ItineraryOut)
+async def add_event(
+    itinerary_id: int,
+    body: AddEventRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Add an event (Ticketmaster or user-defined) as a new stop.
+
+    The event's venue becomes a synthetic Place (we prefix the id with
+    'event:' so it doesn't collide with real Google place_ids). The event
+    name + time go into the new Stop's notes. Trip route is recomputed
+    on the new ordering (event appended at the end so it integrates with
+    the existing drag-to-reorder).
+    """
+    itin = (
+        await db.execute(select(Itinerary).where(Itinerary.id == itinerary_id))
+    ).scalar_one_or_none()
+    if not itin:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+    # Resolve venue: prefer explicit lat/lon (Ticketmaster), fall back to
+    # search_text on the user's venue_query (custom event).
+    lat = body.venue_lat
+    lon = body.venue_lon
+    venue_name = body.venue_name
+    if (lat is None or lon is None) and body.venue_query:
+        resolved = await places.search_text(body.venue_query)
+        if not resolved:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                "Couldn't find that venue — try a more specific name.",
+            )
+        lat = resolved["lat"]
+        lon = resolved["lon"]
+        venue_name = venue_name or resolved["name"]
+    if lat is None or lon is None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Need either venue_lat+venue_lon or a venue_query.",
+        )
+
+    external = body.external_id or hashlib.sha1(
+        f"{body.name}|{lat:.4f}|{lon:.4f}|{body.start_local or ''}".encode()
+    ).hexdigest()[:16]
+    synth_id = f"event:{external}"
+
+    place = (
+        await db.execute(select(Place).where(Place.google_place_id == synth_id))
+    ).scalar_one_or_none()
+    if place is None:
+        place = Place(
+            google_place_id=synth_id,
+            name=venue_name or body.name,
+            latitude=lat,
+            longitude=lon,
+            description=f"Event: {body.name}",
+            num_visits=1,
+        )
+        db.add(place)
+        await db.flush()
+
+    note_parts: list[str] = [f"🎟 {body.name}"]
+    if body.start_local:
+        # Local could be either "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM:SS"
+        try:
+            t = body.start_local.split("T", 1)[1][:5]
+            note_parts.append(f"at {t}")
+        except IndexError:
+            pass
+    if body.url:
+        note_parts.append(body.url)
+    note = " · ".join(note_parts)[:1024]
+
+    # Append to current stop order; user can drag-reorder.
+    existing = (
+        await db.execute(
+            select(Stop).where(Stop.itinerary_id == itin.id).order_by(Stop.position)
+        )
+    ).scalars().all()
+    new_stop = Stop(
+        itinerary_id=itin.id,
+        place_id=place.id,
+        position=len(existing),
+        notes=note,
+    )
+    db.add(new_stop)
+    await db.flush()
+
+    # Re-route through the new ordering (skips 2-opt — user-explicit add).
+    place_rows = (
+        await db.execute(
+            select(Place).where(Place.id.in_([s.place_id for s in existing] + [place.id]))
+        )
+    ).scalars().all()
+    by_id = {p.id: p for p in place_rows}
+    all_stops = existing + [new_stop]
+    await db.commit()
+    return await _to_out(itin, [(s, by_id[s.place_id]) for s in all_stops])
 
 
 @router.patch("/{itinerary_id}/stops/{place_id}/notes")

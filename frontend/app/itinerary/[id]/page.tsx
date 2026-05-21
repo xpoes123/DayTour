@@ -35,6 +35,7 @@ import {
   type TravelStep,
 } from "@/lib/api";
 import { AISparkleIcon } from "@/components/ai-sparkle";
+import { EventsPanel } from "@/components/events-panel";
 import { ItineraryMap } from "@/components/itinerary-map";
 import { LoadingScreen } from "@/components/loading-screen";
 import { NearbyRestaurants } from "@/components/nearby-restaurants";
@@ -516,6 +517,14 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
           )}
         </div>
       </div>
+
+      <EventsPanel
+        itineraryId={data.id}
+        lat={firstWithCoords?.latitude}
+        lon={firstWithCoords?.longitude}
+        date={tripDate}
+        tripDate={tripDate}
+      />
 
       {(altsQuery.isLoading || visibleAlts.length > 0) && (
         <section className="mt-10">
