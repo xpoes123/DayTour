@@ -1,6 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
+import Link from "next/link";
 import { use, useMemo, useState } from "react";
 import {
   api,
@@ -353,6 +355,14 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
+      <Link
+        href="/"
+        aria-label="DayTour home"
+        className="mb-4 inline-flex items-center gap-2 text-ink/60 transition hover:text-ink"
+      >
+        <Image src="/daytour.png" alt="" width={28} height={28} />
+        <span className="text-sm font-medium">DayTour</span>
+      </Link>
       <header className="mb-6">
         <h1 className="font-display text-3xl tracking-tight">
           {data.title ?? `Day from ${data.start_loc}`}

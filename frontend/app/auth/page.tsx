@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { auth } from "@/lib/api";
@@ -37,7 +38,9 @@ function AuthForm() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-8 px-6 py-12">
-      <Image src="/daytour.png" alt="DayTour" width={96} height={96} priority />
+      <Link href="/" aria-label="DayTour home" className="transition hover:opacity-80">
+        <Image src="/daytour.png" alt="DayTour" width={96} height={96} priority />
+      </Link>
       <div className="w-full rounded-xl border border-ink/10 bg-white p-6 shadow-sm">
         <div className="mb-6 flex gap-1 rounded-lg bg-ink/5 p-1 text-sm">
           <button

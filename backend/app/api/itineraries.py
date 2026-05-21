@@ -6,7 +6,7 @@ addressable by id / share_token.
 """
 
 import logging
-import secrets
+import uuid
 from typing import Annotated
 
 logger = logging.getLogger(__name__)
@@ -213,7 +213,7 @@ async def create_itinerary(
         start_loc=body.start_loc,
         radius_m=body.radius_m,
         transit_mode=body.transit_mode,
-        share_token=secrets.token_urlsafe(8),
+        share_token=uuid.uuid4().hex,
     )
     db.add(itinerary)
     await db.flush()

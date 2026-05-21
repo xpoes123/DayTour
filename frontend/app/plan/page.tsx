@@ -1,10 +1,12 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, type Itinerary } from "@/lib/api";
 import { PlaceAutocomplete } from "@/components/place-autocomplete";
+import { TransitModePicker } from "@/components/transit-mode-picker";
 
 export default function PlanPage() {
   const router = useRouter();
@@ -40,7 +42,9 @@ export default function PlanPage() {
   return (
     <main className="mx-auto max-w-xl px-6 py-12">
       <header className="mb-8 flex items-center gap-4">
-        <Image src="/daytour.png" alt="" width={56} height={56} />
+        <Link href="/" aria-label="DayTour home" className="transition hover:opacity-80">
+          <Image src="/daytour.png" alt="DayTour" width={56} height={56} />
+        </Link>
         <div>
           <h1 className="font-display text-3xl tracking-tight">Plan a day</h1>
           <p className="text-sm text-ink/60">
@@ -93,19 +97,10 @@ export default function PlanPage() {
           />
         </label>
 
-        <label className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink/80">Transit</span>
-          <select
-            value={transitMode}
-            onChange={(e) => setTransitMode(e.target.value as typeof transitMode)}
-            className="field"
-          >
-            <option value="walking">Walking</option>
-            <option value="driving">Driving</option>
-            <option value="bicycling">Biking</option>
-            <option value="transit">Transit</option>
-          </select>
-        </label>
+          <TransitModePicker value={transitMode} onChange={setTransitMode} />
+        </div>
 
         {error && (
           <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">

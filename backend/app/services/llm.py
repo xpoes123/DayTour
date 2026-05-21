@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 _PROMPT_SYS = """You translate user requests for a day-trip itinerary into structured JSON.
 
-Output ONLY a JSON object with these fields:
+Output ONLY a JSON object — no prose, no markdown fences, no leading or trailing text.
+The JSON has exactly these fields:
 {
   "start_loc": string,       // city, address, or landmark
   "radius_m": integer,       // 500-20000
@@ -25,8 +26,32 @@ Output ONLY a JSON object with these fields:
   "transit_mode": "walking" | "driving" | "bicycling" | "transit"
 }
 
-If a field is not specified, pick a reasonable default.
+Defaults when unspecified: radius_m=4000, stop_count=5, transit_mode="walking".
+Always return all four fields.
 """
+
+
+def _extract_json_object(text: str) -> str:
+    """Pull the first balanced {...} block out of the model's response.
+
+    Claude usually obeys 'JSON only' but occasionally wraps in ```json fences
+    or adds a one-line preamble. This recovers from both without changing the
+    happy path.
+    """
+    text = text.strip()
+    # Strip a leading code fence (```json or ```).
+    if text.startswith("```"):
+        first_nl = text.find("\n")
+        if first_nl != -1:
+            text = text[first_nl + 1 :]
+        if text.endswith("```"):
+            text = text[: -3]
+        text = text.strip()
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end < start:
+        return text
+    return text[start : end + 1]
 
 
 def _client() -> AsyncAnthropic:
@@ -41,7 +66,12 @@ async def prompt_to_plan(prompt: str) -> dict[str, Any]:
         messages=[{"role": "user", "content": prompt}],
     )
     text = "".join(b.text for b in msg.content if b.type == "text")
-    return json.loads(text)
+    payload = _extract_json_object(text)
+    try:
+        return json.loads(payload)
+    except json.JSONDecodeError as e:
+        logger.warning("prompt_to_plan: model returned non-JSON: %s", text[:300])
+        raise ValueError(f"Could not parse Claude response as JSON: {e}") from e
 
 
 _DESC_SYS = """You write one-sentence "why visit" blurbs for places on a day trip.

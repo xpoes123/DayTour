@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Image from "next/image";
 import Link from "next/link";
 import { use, useState } from "react";
 import {
@@ -67,6 +68,14 @@ export default function SharedItineraryPage({
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
+      <Link
+        href="/"
+        aria-label="DayTour home"
+        className="mb-4 inline-flex items-center gap-2 text-ink/60 transition hover:text-ink"
+      >
+        <Image src="/daytour.png" alt="" width={28} height={28} />
+        <span className="text-sm font-medium">DayTour</span>
+      </Link>
       <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent-dark">
         Shared trip
       </div>
